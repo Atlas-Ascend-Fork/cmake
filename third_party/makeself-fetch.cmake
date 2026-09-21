@@ -7,10 +7,11 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------------------------------------
-include_guard(GLOBAL)
-
 set(MAKESELF_NAME "makeself")
 set(MAKESELF_PATH "${CANN_3RD_LIB_PATH}/${MAKESELF_NAME}")
+
+include_guard(GLOBAL)
+
 set(MAKESELF_TAR_PATH "${CANN_3RD_LIB_PATH}/makeself-release-2.5.0.tar.gz")
 set(MAKESELF_PATCH "${CANN_3RD_LIB_PATH}/patch/makeself-2.5.0.patch")
 set(REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/makeself-release-2.5.0.tar.gz")
