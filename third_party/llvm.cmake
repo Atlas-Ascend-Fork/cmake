@@ -36,6 +36,7 @@ set(LLVM_SOURCE_PATH ${CANN_3RD_LIB_PATH}/llvm-19)
 set(LLVM_INSTALL_PATH ${CANN_3RD_LIB_PATH}/lib_cache/llvm_${LLVM_PROJECT_VERSION})
 set(LLVM_DOWNLOAD_PATH ${CANN_3RD_LIB_PATH}/pkg)
 set(LLVM_ARCHIVE ${LLVM_DOWNLOAD_PATH}/llvm-project-${LLVM_PROJECT_TAG}.tar.gz)
+set(LLVM_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch)
 
 if(NOT CMAKE_FIND_LIBRARY_PREFIXES)
     set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
@@ -121,7 +122,7 @@ set(LLVM_VPTO_PATCH_READY FALSE)
 if(NOT LLVM_SOURCE_HAS_VPTO)
     foreach(_vpto_cand
             ${CANN_3RD_LIB_PATH}/feature-vpto-last3.patch
-            ${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch)
+            ${LLVM_PATCH_PATH}/feature-vpto-last3.patch)
         if(EXISTS ${_vpto_cand})
             set(LLVM_VPTO_PATCH_FILE ${_vpto_cand})
             set(LLVM_VPTO_PATCH_READY TRUE)
@@ -130,28 +131,28 @@ if(NOT LLVM_SOURCE_HAS_VPTO)
         endif()
     endforeach()
     if(NOT LLVM_VPTO_PATCH_READY)
-        message(STATUS "[ThirdParty][llvm] vpto patch not cached, downloading to: ${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch")
-        file(MAKE_DIRECTORY ${LLVM_DOWNLOAD_PATH})
+        message(STATUS "[ThirdParty][llvm] vpto patch not cached, downloading to: ${LLVM_PATCH_PATH}/feature-vpto-last3.patch")
+        file(MAKE_DIRECTORY ${LLVM_PATCH_PATH})
         # file(DOWNLOAD ... EXPECTED_HASH) hard-fails on any failed download
         # (the empty/partial target fails the hash check even with STATUS set),
         # which would abort the configure in sandboxed environments. Download
         # without a hash and verify afterwards.
-        file(REMOVE "${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch")
+        file(REMOVE "${LLVM_PATCH_PATH}/feature-vpto-last3.patch")
         file(DOWNLOAD
             "https://gitcode.com/cann-src-third-party/llvm/releases/download/19.1.7-h0/feature-vpto-last3.patch"
-            "${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch"
+            "${LLVM_PATCH_PATH}/feature-vpto-last3.patch"
             TIMEOUT 60
             STATUS LLVM_VPTO_DL_STATUS
         )
         list(GET LLVM_VPTO_DL_STATUS 0 LLVM_VPTO_DL_CODE)
-        if(NOT LLVM_VPTO_DL_CODE EQUAL 0 OR NOT EXISTS "${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch")
+        if(NOT LLVM_VPTO_DL_CODE EQUAL 0 OR NOT EXISTS "${LLVM_PATCH_PATH}/feature-vpto-last3.patch")
             # The source does not carry SimtEntry, so the patch is required;
             # a failed download cannot be silently ignored.
             message(FATAL_ERROR "[ThirdParty][llvm] vpto patch download failed (code ${LLVM_VPTO_DL_CODE}) and the LLVM source lacks SimtEntry; the patch is required for the PTOAS build")
         endif()
-        file(SHA256 "${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch" LLVM_VPTO_DL_SHA256)
+        file(SHA256 "${LLVM_PATCH_PATH}/feature-vpto-last3.patch" LLVM_VPTO_DL_SHA256)
         if(LLVM_VPTO_DL_SHA256 STREQUAL "a49c1d3dd8ab78e93264712bc0d46deb536196a54abb2c2ee02abd914cd385e2")
-            set(LLVM_VPTO_PATCH_FILE ${LLVM_DOWNLOAD_PATH}/feature-vpto-last3.patch)
+            set(LLVM_VPTO_PATCH_FILE ${LLVM_PATCH_PATH}/feature-vpto-last3.patch)
             set(LLVM_VPTO_PATCH_READY TRUE)
             message(STATUS "[ThirdParty][llvm] vpto patch downloaded: ${LLVM_VPTO_PATCH_FILE}")
         else()

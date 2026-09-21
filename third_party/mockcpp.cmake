@@ -22,7 +22,7 @@ set(mockcpp_CXXFLAGS "${mockcpp_CXXFLAGS} -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_
 #依赖蓝区二进制仓mockcpp
 set(FILE_NAME mockcpp-2.7.tar.gz)
 set(BOOST_INCLUDE_DIR ${CANN_3RD_LIB_PATH}/boost)
-set(MOCKCPP_DOWNLOAD_PATH ${CANN_3RD_LIB_PATH}/pkg)
+set(MOCKCPP_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch)
 set(MOCKCPP_SOURCE_PATH ${CANN_3RD_LIB_PATH}/mockcpp)
 set(MOCK_INSTALL_PATH ${CANN_3RD_LIB_PATH}/lib_cache/mockcpp)
 
@@ -31,15 +31,15 @@ include(ExternalProject)
 if(EXISTS ${CANN_3RD_LIB_PATH}/mockcpp-2.7-h5.patch)
     set(PATCH_FILE "${CANN_3RD_LIB_PATH}/mockcpp-2.7-h5.patch")
     add_custom_target(mockcpp_patch)
-elseif(EXISTS ${MOCKCPP_DOWNLOAD_PATH}/mockcpp-2.7-h5.patch)
-    set(PATCH_FILE ${MOCKCPP_DOWNLOAD_PATH}/mockcpp-2.7-h5.patch)
+elseif(EXISTS ${MOCKCPP_PATCH_PATH}/mockcpp-2.7-h5.patch)
+    set(PATCH_FILE ${MOCKCPP_PATCH_PATH}/mockcpp-2.7-h5.patch)
     add_custom_target(mockcpp_patch)
 else()
-    set(PATCH_FILE ${MOCKCPP_DOWNLOAD_PATH}/mockcpp-2.7-h5.patch)
+    set(PATCH_FILE ${MOCKCPP_PATCH_PATH}/mockcpp-2.7-h5.patch)
     ExternalProject_Add(mockcpp_patch
         URL "https://gitcode.com/cann-src-third-party/mockcpp/releases/download/v2.7-h5/mockcpp-2.7-h5.patch"
         URL_HASH SHA256=65a2aac5e8ffe1a0eb983e4455972ef70b9850d4283ea7d4cc83e3cb97e98c5e
-        DOWNLOAD_DIR ${MOCKCPP_DOWNLOAD_PATH}
+        DOWNLOAD_DIR ${MOCKCPP_PATCH_PATH}
         DOWNLOAD_NO_EXTRACT TRUE
         DOWNLOAD_NO_PROGRESS TRUE
         TIMEOUT 60
@@ -71,7 +71,6 @@ ExternalProject_Add(mockcpp_static_build
     URL_HASH SHA256=73ab0a8b6d1052361c2cebd85e022c0396f928d2e077bf132790ae3be766f603
     TIMEOUT 300
     DEPENDS third_party_boost mockcpp_patch
-    DOWNLOAD_DIR ${MOCKCPP_DOWNLOAD_PATH}
     SOURCE_DIR ${MOCKCPP_SOURCE_PATH}
     PATCH_COMMAND patch --forward --batch --quiet -r - -p1 < ${PATCH_FILE}
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}

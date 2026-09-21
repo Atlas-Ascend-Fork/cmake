@@ -12,7 +12,7 @@ include_guard(GLOBAL)
 set(MAKESELF_NAME "makeself")
 set(MAKESELF_PATH "${CANN_3RD_LIB_PATH}/${MAKESELF_NAME}")
 set(MAKESELF_TAR_PATH "${CANN_3RD_LIB_PATH}/makeself-release-2.5.0.tar.gz")
-set(MAKESELF_PATCH_PATH "${CANN_3RD_LIB_PATH}/pkg/makeself-2.5.0.patch")
+set(MAKESELF_PATCH "${CANN_3RD_LIB_PATH}/patch/makeself-2.5.0.patch")
 set(REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/makeself-release-2.5.0.tar.gz")
 set(PATCH_REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/makeself-2.5.0.patch")
 
@@ -20,13 +20,13 @@ set(PATCH_REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/ma
 if (EXISTS "${MAKESELF_PATH}/makeself-header.sh" AND EXISTS "${MAKESELF_PATH}/makeself.sh")
     message(STATUS "[ThirdParty][makeself] found patched source in ${MAKESELF_PATH}, skip extract and patch")
 # 2. 本地缓存：同时存在tar包和patch文件，走本地缓存逻辑
-elseif (EXISTS "${MAKESELF_TAR_PATH}" AND EXISTS "${MAKESELF_PATCH_PATH}")
+elseif (EXISTS "${MAKESELF_TAR_PATH}" AND EXISTS "${MAKESELF_PATCH}")
     message(STATUS "[ThirdParty][makeself] use local cache tar and patch")
     set(MAKESELF_NEED_EXTRACT TRUE)
 # 3. 其余情况：下载tar包和patch包
 else()
     message(STATUS "[ThirdParty][makeself] downloading tar and patch")
-    file(MAKE_DIRECTORY "${CANN_3RD_LIB_PATH}/pkg")
+    file(MAKE_DIRECTORY "${CANN_3RD_LIB_PATH}/patch")
 
     if (NOT EXISTS "${MAKESELF_TAR_PATH}")
         message(STATUS "[ThirdParty][makeself] downloading tar from ${REQ_URL}")
@@ -41,11 +41,11 @@ else()
         endif()
     endif()
 
-    if (NOT EXISTS "${MAKESELF_PATCH_PATH}")
+    if (NOT EXISTS "${MAKESELF_PATCH}")
         message(STATUS "[ThirdParty][makeself] downloading patch from ${PATCH_REQ_URL}")
-        file(DOWNLOAD "${PATCH_REQ_URL}" "${MAKESELF_PATCH_PATH}"
+        file(DOWNLOAD "${PATCH_REQ_URL}" "${MAKESELF_PATCH}"
             TIMEOUT 300
-            EXPECTED_HASH SHA256=abb9efe26f95db61ce927a7d046ea2c73ec908cec984ea6316892b4c8b11d784
+            EXPECTED_HASH SHA256=0ecac3fe200221353322626900d5257a59d98347f83653b98456e08475994486
             STATUS PATCH_DOWNLOAD_STATUS
         )
         list(GET PATCH_DOWNLOAD_STATUS 0 PATCH_DOWNLOAD_CODE)
@@ -74,7 +74,7 @@ if(MAKESELF_NEED_EXTRACT)
     execute_process(
         COMMAND patch -N --batch --quiet -r - -p1
         WORKING_DIRECTORY "${MAKESELF_PATH}"
-        INPUT_FILE "${MAKESELF_PATCH_PATH}"
+        INPUT_FILE "${MAKESELF_PATCH}"
         RESULT_VARIABLE PATCH_RESULT
         ERROR_VARIABLE PATCH_ERROR
     )

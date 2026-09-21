@@ -16,10 +16,10 @@ set(ABSEIL_VERSION_PKG abseil-cpp-20230802.1.tar.gz)
 
 if(PRODUCT_SIDE STREQUAL "device")
     set(ABS_INSTALL_DIR ${CANN_3RD_LIB_PATH}/lib_cache/device/abseil-cpp CACHE INTERNAL "abseil cpp install dir")
-    set(ABS_PKG_DIR ${CANN_3RD_LIB_PATH}/pkg/device CACHE INTERNAL "abseil cpp pkg dir")
+    set(ABS_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch/device CACHE INTERNAL "abseil cpp patch dir")
 else()
     set(ABS_INSTALL_DIR ${CANN_3RD_LIB_PATH}/lib_cache/abseil-cpp CACHE INTERNAL "abseil cpp install dir")
-    set(ABS_PKG_DIR ${CANN_3RD_LIB_PATH}/pkg CACHE INTERNAL "abseil cpp pkg dir")
+    set(ABS_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch CACHE INTERNAL "abseil cpp patch dir")
 endif()
 
 # use for online pipeline building acceleration
@@ -58,16 +58,16 @@ else()
     if(EXISTS ${CANN_3RD_LIB_PATH}/abseil-cpp/backport-CVE-2025-0838.patch)
         set(ABSL_CVE_PATCH_FILE ${CANN_3RD_LIB_PATH}/abseil-cpp/backport-CVE-2025-0838.patch)
         add_custom_target(abseil_cve_patch)
-    elseif(EXISTS ${ABS_PKG_DIR}/backport-CVE-2025-0838.patch)
-        set(ABSL_CVE_PATCH_FILE ${ABS_PKG_DIR}/backport-CVE-2025-0838.patch)
+    elseif(EXISTS ${ABS_PATCH_PATH}/backport-CVE-2025-0838.patch)
+        set(ABSL_CVE_PATCH_FILE ${ABS_PATCH_PATH}/backport-CVE-2025-0838.patch)
         add_custom_target(abseil_cve_patch)
     else()
         # 路径不能与 abseil 源码目录相同,构建时会清理
-        set(ABSL_CVE_PATCH_FILE ${ABS_PKG_DIR}/backport-CVE-2025-0838.patch)
+        set(ABSL_CVE_PATCH_FILE ${ABS_PATCH_PATH}/backport-CVE-2025-0838.patch)
         ExternalProject_Add(abseil_cve_patch
             URL "https://gitcode.com/cann-src-third-party/abseil-cpp/releases/download/20230802.1-h0/backport-CVE-2025-0838.patch"
             URL_HASH SHA256=a4e4ef6fc4f4c1ed871a3472c5e650068aaadaad2adfef2c8ccb00918bb36d8c
-            DOWNLOAD_DIR ${ABS_PKG_DIR}
+            DOWNLOAD_DIR ${ABS_PATCH_PATH}
             DOWNLOAD_NO_EXTRACT TRUE
             DOWNLOAD_NO_PROGRESS TRUE
             TIMEOUT 60
@@ -86,7 +86,6 @@ else()
     ExternalProject_Add(abseil_build
         URL ${REQ_URL}
         URL_HASH SHA256=987ce98f02eefbaf930d6e38ab16aa05737234d7afbab2d5c4ea7adbe50c28ed
-        DOWNLOAD_DIR ${ABS_PKG_DIR}
         SOURCE_DIR ${ABS_INSTALL_DIR}
         TIMEOUT 300
         PATCH_COMMAND patch --forward --batch --quiet -r - -p1 < ${CMAKE_CURRENT_LIST_DIR}/patch/protobuf-hide_absl_symbols.patch && patch --forward --batch --quiet -r - -p1 < ${ABSL_CVE_PATCH_FILE} && patch --forward --batch --quiet -r - -p1 < ${CMAKE_CURRENT_LIST_DIR}/patch/fix-gcc15-gcc16-container-memory-cstdint.patch

@@ -16,11 +16,11 @@ unset(RDMA_CORE_INCLUDE CACHE)
 if(PRODUCT_SIDE STREQUAL "device")
     set(RDMA_CORE_SRC_DIR ${CANN_3RD_LIB_PATH}/lib_cache/device/rdma_core_src)
     set(RDMA_CORE_BUILD_DIR ${CANN_3RD_LIB_PATH}/lib_cache/device/rdma_core_build)
-    set(RDMA_CORE_PKG_DIR ${CANN_3RD_LIB_PATH}/pkg/device)
+    set(RDMA_CORE_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch/device)
 else()
     set(RDMA_CORE_SRC_DIR ${CANN_3RD_LIB_PATH}/lib_cache/rdma_core_src)
     set(RDMA_CORE_BUILD_DIR ${CANN_3RD_LIB_PATH}/lib_cache/rdma_core_build)
-    set(RDMA_CORE_PKG_DIR ${CANN_3RD_LIB_PATH}/pkg)
+    set(RDMA_CORE_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch)
 endif()
 
 
@@ -51,8 +51,8 @@ if(rdma_core_FOUND AND NOT FORCE_REBUILD_CANN_3RD)
     set(RDMA_CORE_INCLUDE_DIR "${RDMA_CORE_INCLUDE}")
     message(STATUS "[ThirdParty][rdma-core] rdma-core found in ${RDMA_CORE_BUILD_DIR}, and not force rebuild cann third_party")
 else()
-    if(EXISTS "${RDMA_CORE_PKG_DIR}/${RDMA_CORE_PATCH_FILE}")
-        set(RDMA_CORE_PATCH "${RDMA_CORE_PKG_DIR}/${RDMA_CORE_PATCH_FILE}")
+    if(EXISTS "${RDMA_CORE_PATCH_PATH}/${RDMA_CORE_PATCH_FILE}")
+        set(RDMA_CORE_PATCH "${RDMA_CORE_PATCH_PATH}/${RDMA_CORE_PATCH_FILE}")
     elseif(EXISTS "${CANN_3RD_LIB_PATH}/${RDMA_CORE_PATCH_FILE}")
         set(RDMA_CORE_PATCH "${CANN_3RD_LIB_PATH}/${RDMA_CORE_PATCH_FILE}")
     elseif(EXISTS "${CANN_3RD_LIB_PATH}/rdma-core/${RDMA_CORE_PATCH_FILE}")
@@ -62,20 +62,20 @@ else()
     endif()
 
     if(RDMA_CORE_PATCH_PROJECT_URL)
- 	    ExternalProject_Add(rdma_core_patch
+        ExternalProject_Add(rdma_core_patch
             URL ${RDMA_CORE_PATCH_PROJECT_URL}
-  	        URL_HASH SHA256=54ca56b3b68bc465a78dd5839cd7110610745c7152a1dc3a72b265deeebb905f
-  	        TIMEOUT 60
-  	        DOWNLOAD_DIR ${RDMA_CORE_PKG_DIR}
- 	        UPDATE_COMMAND ""
- 	        CONFIGURE_COMMAND ""
- 	        BUILD_COMMAND ""
- 	        INSTALL_COMMAND ""
+            URL_HASH SHA256=54ca56b3b68bc465a78dd5839cd7110610745c7152a1dc3a72b265deeebb905f
+            TIMEOUT 60
+            DOWNLOAD_DIR ${RDMA_CORE_PATCH_PATH}
+            UPDATE_COMMAND ""
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
  	        DOWNLOAD_NO_EXTRACT TRUE
  	        DOWNLOAD_NO_PROGRESS TRUE
- 	        EXCLUDE_FROM_ALL TRUE
+            EXCLUDE_FROM_ALL TRUE
  	    )
-        set(RDMA_CORE_PATCH "${RDMA_CORE_PKG_DIR}/${RDMA_CORE_PATCH_FILE}")
+        set(RDMA_CORE_PATCH "${RDMA_CORE_PATCH_PATH}/${RDMA_CORE_PATCH_FILE}")
     else()
         add_custom_target(rdma_core_patch)
     endif()
@@ -100,7 +100,6 @@ else()
             URL_HASH SHA256=aa935de1fcd07c42f7237b0284b5697b1ace2a64f2bcfca3893185bc91b8c74d
             TIMEOUT 300
             SOURCE_DIR ${RDMA_CORE_SRC_DIR}
-            DOWNLOAD_DIR ${RDMA_CORE_PKG_DIR}
             PATCH_COMMAND patch --forward --batch --quiet -r - -p1 -i "${RDMA_CORE_PATCH}"
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ""
