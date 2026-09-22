@@ -15,7 +15,7 @@ include_guard(GLOBAL)
 set(MAKESELF_TAR_PATH "${CANN_3RD_LIB_PATH}/makeself-release-2.5.0.tar.gz")
 set(MAKESELF_PATCH "${CANN_3RD_LIB_PATH}/patch/makeself-2.5.0.patch")
 set(REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/makeself-release-2.5.0.tar.gz")
-set(PATCH_REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/makeself-2.5.0.patch")
+set(PATCH_REQ_URL "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/makeself/fix/makeself-2.5.0.patch")
 
 # 1. 已存在应用过patch的源码，跳过解压和应用patch
 if (EXISTS "${MAKESELF_PATH}/makeself-header.sh" AND EXISTS "${MAKESELF_PATH}/makeself.sh")
