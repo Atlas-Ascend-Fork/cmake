@@ -281,6 +281,7 @@ class MixCommand:
         self.logger = Logger(
             CommLog.cilog_error, CommLog.cilog_warning, CommLog.cilog_info
         )
+        self._3min = 180
 
     @classmethod
     def add_parser(cls, subparsers):
@@ -409,7 +410,9 @@ class MixCommand:
                 executor.submit(self.mix_process, pkga, pkgb)
                 for pkga, pkgb in batched(self.args.pkgs, 2)
             ]
-            for future in as_completed(futures, timeout=60):
+            for future in as_completed(
+                futures, timeout=self._3min
+            ):  # 从as_completed调用起计时
                 ret &= future.result()
         return ret
 
