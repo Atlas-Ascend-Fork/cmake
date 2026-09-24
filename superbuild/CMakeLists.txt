@@ -100,6 +100,15 @@ string(REPLACE ";" "::" EP_DEVICE_CANN_DEPEND_PACKAGES "${DEVICE_CANN_DEPEND_PAC
 if(SUPERBUILD_ENABLE_DEVICE)
     # 以 ExternalProject 启动独立 CMake 进程，使用 aarch64 工具链交叉编译 device 侧，
     # 编译完成后执行 cpack 打包，产物为 device-<pkg>.tar.gz。
+
+    set(EP_CMAKE_ARGS)
+    if(CANN_UNIFIED_VERSION)
+        list(APPEND EP_CMAKE_ARGS "-D" "CANN_UNIFIED_VERSION=${CANN_UNIFIED_VERSION}")
+    endif()
+    if(DEVICE_EXT_ARGS)
+        list(APPEND EP_CMAKE_ARGS ${DEVICE_EXT_ARGS})
+    endif()
+
     include(ExternalProject)
     ExternalProject_Add(cann_device
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/device
@@ -121,6 +130,7 @@ if(SUPERBUILD_ENABLE_DEVICE)
             -DCUSTOM_SIGN_SCRIPT=${CUSTOM_SIGN_SCRIPT}
             -DLAUNCH_COMPILE_TOOL=${LAUNCH_COMPILE_TOOL}
             -DLAUNCH_LINK_TOOL=${LAUNCH_LINK_TOOL}
+            ${EP_CMAKE_ARGS}
         INSTALL_COMMAND ${CMAKE_CPACK_COMMAND}
         LIST_SEPARATOR ::
         BUILD_ALWAYS TRUE

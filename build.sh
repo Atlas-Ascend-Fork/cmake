@@ -20,11 +20,12 @@ usage() {
   echo "  sh build.sh --pkgs=<PACKAGES> [-h | --help] [-v | --verbose] [-j<N>]"
   echo "              [--binary-pkgs=<PACKAGES>]"
   echo "              [--superbuild-config=<PATH>] [--p=<PATH> | --cann_path=<PATH>]"
-  echo "              [--cann_3rd_lib_path=<PATH>]"
+  echo "              [--cann_3rd_lib_path=<PATH>] [--cann-version]"
   echo "              [--build_host_only] [--build-type=<TYPE>] [--pkg-type=<TYPE>]"
   echo "              [--asan] [--cov]"
   echo "              [--sign-script <PATH>] [--enable-sign]"
   echo "              [--rule-launch | --rule_launch]"
+  echo "              [--cmake-extra-args]"
   echo ""
   echo "Options:"
   echo "    -h, --help     Print usage"
@@ -40,6 +41,8 @@ usage() {
   echo "                   Set ascend package install path, default /usr/local/Ascend/cann"
   echo "    --cann_3rd_lib_path=<PATH>"
   echo "                   Set ascend third_party package install path, default ./output/third_party"
+  echo "    --cann-version=<VERSION>"
+  echo "                   Set cann package version, it will override version in version.cmake in repository."
   echo "    --build_host_only"
   echo "                   Only build host target"
   echo "    --build-type=<TYPE>"
@@ -94,6 +97,7 @@ checkopts() {
   CANN_PACKAGES=""
   CANN_BINARY_PACKAGES=""
   CANN_SUPERBUILD_CONFIG=""
+  CANN_UNIFIED_VERSION=""
   LAUNCH_RULE=""
   MAKE_PROFILER=""
   CMAKE_EXTRA_ARGS=()
@@ -105,7 +109,7 @@ checkopts() {
   DEVICE_TOOLCHAIN_DIR=""
 
   # Process the options
-  parsed_args=$(getopt -a -o j:hp:v -l help,pkgs:,superbuild-config:,binary-pkgs:,verbose,cov,build_host_only,cann_path:,build-type:,pkg-type:,cann_3rd_lib_path:,asan,sign-script:,enable-sign,rule-launch:,rule_launch:,make-profiler:,cmake-extra-args:,host-toolchain:,host-toolchain-dir:,device-toolchain:,device-toolchain-dir: -- "$@") || {
+  parsed_args=$(getopt -a -o j:hp:v -l help,pkgs:,superbuild-config:,binary-pkgs:,verbose,cov,build_host_only,cann_path:,build-type:,pkg-type:,cann_3rd_lib_path:,cann-version:,asan,sign-script:,enable-sign,rule-launch:,rule_launch:,make-profiler:,cmake-extra-args:,host-toolchain:,host-toolchain-dir:,device-toolchain:,device-toolchain-dir: -- "$@") || {
     usage
     exit 1
   }
@@ -163,6 +167,14 @@ checkopts() {
         ;;
       --cann_3rd_lib_path)
         CANN_3RD_LIB_PATH="$(realpath "$2")"
+        shift 2
+        ;;
+      --cann-version)
+        if [[ -z "$2" ]]; then
+          echo "error: --cann-version cann not be empty."
+          exit 1
+        fi
+        CANN_UNIFIED_VERSION="$2"
         shift 2
         ;;
       --sign-script)
@@ -301,6 +313,9 @@ build_project() {
   fi
   if [ -n "${CANN_SUPERBUILD_CONFIG}" ]; then
     CMAKE_ARGS+=("-DCANN_SUPERBUILD_CONFIG=${CANN_SUPERBUILD_CONFIG}")
+  fi
+  if [ -n "${CANN_UNIFIED_VERSION}" ]; then
+    CMAKE_ARGS+=("-DCANN_UNIFIED_VERSION=${CANN_UNIFIED_VERSION}")
   fi
   if [ -n "${ENABLE_GCOV}" ]; then
     CMAKE_ARGS+=("-DENABLE_GCOV=${ENABLE_GCOV}")
