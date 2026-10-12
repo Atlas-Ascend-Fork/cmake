@@ -1073,7 +1073,7 @@ endfunction()
 
 # 生成版本号头文件
 function(gen_cann_version_header pkg_name)
-    cmake_parse_arguments(CANN "" "VERSION" "" ${ARGN})
+    cmake_parse_arguments(CANN "TIMESTAMP" "VERSION" "" ${ARGN})
     if(CANN_UNPARSED_ARGUMENTS)
         # 如果有2个位置参数，将第2个位置参数作为component
         list(GET CANN_UNPARSED_ARGUMENTS 0 component)
@@ -1084,8 +1084,13 @@ function(gen_cann_version_header pkg_name)
         set(CANN_VERSION "${CANN_VERSION_${component}_VERSION}")
     endif()
     set(OUTPUT_PATH "${CMAKE_BINARY_DIR}/include/version/${pkg_name}_version.h")
+    if(CANN_TIMESTAMP)
+        set(TIMESTAMP_OPTION "--timestamp")
+    else()
+        set(TIMESTAMP_OPTION)
+    endif()
     add_custom_command(OUTPUT ${OUTPUT_PATH}
-        COMMAND bash ${CANN_CMAKE_DIR}/scripts/package/generate_version_header.sh "${pkg_name}" "${CANN_VERSION}" --output ${OUTPUT_PATH}
+        COMMAND bash ${CANN_CMAKE_DIR}/scripts/package/generate_version_header.sh "${pkg_name}" "${CANN_VERSION}" --output ${OUTPUT_PATH} ${TIMESTAMP_OPTION}
     )
     add_custom_target(gen_${pkg_name}_version_header ALL DEPENDS ${OUTPUT_PATH})
     if(NOT PRODUCT_SIDE STREQUAL "device")

@@ -54,8 +54,17 @@ if(asc_devkit_FOUND)
         INTERFACE_INCLUDE_DIRECTORIES "${_CANN_ASC_KERNEL_TILING_INCLUDE_DIR}"
     )
 
+    set(_CANN_ASC_KERNEL_INCLUDE_DIRECTORIES
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}"
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}/include"
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}/include/basic_api"
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}/include/simt_api"
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}/impl/basic_api"
+        "${_CANN_ASC_KERNEL_INCLUDE_DIR}/impl/simt_api"
+    )
     add_library(asc_kernel_headers INTERFACE IMPORTED)
     set_target_properties(asc_kernel_headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${_CANN_ASC_KERNEL_INCLUDE_DIR};${_CANN_ASC_KERNEL_INCLUDE_DIR}/include;${_CANN_ASC_KERNEL_INCLUDE_DIR}/include/basic_api;${_CANN_ASC_KERNEL_INCLUDE_DIR}/include/simt_api;${_CANN_ASC_KERNEL_INCLUDE_DIR}/impl/basic_api;${_CANN_ASC_KERNEL_INCLUDE_DIR}/impl/simt_api"
+        INTERFACE_INCLUDE_DIRECTORIES "${_CANN_ASC_KERNEL_INCLUDE_DIRECTORIES}"
     )
+    unset(_CANN_ASC_KERNEL_INCLUDE_DIRECTORIES)
 endif()

@@ -47,11 +47,25 @@ calc_pre_release_expr() {
     read -r "$_outvar" <<< "- ${_pre_type_weight} + ${_num_value}"
 }
 
+gen_timestamp() {
+    local package_name="$1"
+    local timestamp
+
+    if [[ "$TIMESTAMP" == "1" ]]; then
+        if [[ -n "$SOURCE_DATE_EPOCH" ]]; then
+            timestamp="$(date +%Y%m --date=@$SOURCE_DATE_EPOCH)"
+        else
+            timestamp="$(date +%Y%m)"
+        fi
+        echo "#define ${package_name}_TIMESTAMP ${timestamp}"
+    fi
+}
+
 gen_version_header() {
     local package_name="$1"
     local version="$2"
-    local -a release_part 
-    local pre_release base_expr pre_release_expr
+    local -a release_part
+    local pre_release base_expr pre_release_expr year timestamp
 
     if ! grep -Eq "^[0-9]+\.[0-9]+\.[0-9]+" <<< "$version"; then
         echo "error: Invalid version number: $version! (package_name=${package_name})"
@@ -63,6 +77,24 @@ gen_version_header() {
 
     parse_version "release_part" "pre_release" "$version"
 
+    if [[ -n "$SOURCE_DATE_EPOCH" ]]; then
+        year="$(date +%Y --date=@$SOURCE_DATE_EPOCH)"
+    else
+        year="$(date +%Y)"
+    fi
+
+    cat <<EOF
+/**
+* Copyright (c) ${year} Huawei Technologies Co., Ltd.
+* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+* CANN Open Software License Agreement Version 2.0 (the "License").
+* Please refer to the License for details. You may not use this file except in compliance with the License.
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+* See LICENSE in the root of the software repository for the full text of the License.
+*/
+EOF
+    echo ""
     echo "#ifndef ${package_name}_VERSION_H"
     echo "#define ${package_name}_VERSION_H"
     echo ""
@@ -75,6 +107,7 @@ gen_version_header() {
     base_expr="(${release_part[0]} * 10000000) + (${release_part[1]} * 100000) + (${release_part[2]} * 1000)"
     if [[ -z "$pre_release" ]]; then
         echo "#define ${package_name}_VERSION_NUM (${base_expr})"
+        gen_timestamp "${package_name}"
         echo ""
         echo "#endif /* ${package_name}_VERSION_H */"
         return 0
@@ -82,13 +115,14 @@ gen_version_header() {
 
     calc_pre_release_expr "pre_release_expr" "$pre_release"
     echo "#define ${package_name}_VERSION_NUM (${base_expr} ${pre_release_expr})"
+    gen_timestamp "${package_name}"
     echo ""
     echo "#endif /* ${package_name}_VERSION_H */"
     return 0
 }
 
 parse_args() {
-    parsed_args=$(getopt -n "$BASH_SOURCE" -a -o "" -l output: -- "$@") || {
+    parsed_args=$(getopt -n "$BASH_SOURCE" -a -o "" -l "output:,timestamp" -- "$@") || {
         return 1
     }
     eval set -- "$parsed_args"
@@ -98,6 +132,10 @@ parse_args() {
         --output)
             output=$2
             shift 2
+            ;;
+        --timestamp)
+            TIMESTAMP="1"
+            shift 1
             ;;
         --)
             shift
@@ -124,7 +162,7 @@ parse_args() {
 }
 
 main() {
-    local output="" output_dir package_name version
+    local output="" TIMESTAMP="0" output_dir package_name version
     local -a cmd
 
     parse_args "$@"
