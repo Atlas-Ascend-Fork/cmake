@@ -1256,3 +1256,60 @@ function(generate_cann_protobuf comp c_var h_var)
     set(${c_var} ${${c_var}} PARENT_SCOPE)
     set(${h_var} ${${h_var}} PARENT_SCOPE)
 endfunction()
+
+# 打包run包
+function(pack_cann_run_package target component source_dir)
+    cmake_parse_arguments(CANN
+        ""
+        "SHARE_INFO_NAME;ENABLE_DEVICE;COMPUTE_UNIT"
+        "DEPENDS"
+        ${ARGN}
+    )
+
+    if(CANN_SHARE_INFO_NAME)
+        set(SHARE_INFO_NAME "${CANN_SHARE_INFO_NAME}")
+    else()
+        set(SHARE_INFO_NAME "${component}")
+    endif()
+
+    if(CANN_ENABLE_DEVICE)
+        set(ENABLE_DEVICE "${CANN_ENABLE_DEVICE}")
+    else()
+        set(ENABLE_DEVICE FALSE)
+    endif()
+
+    if(CANN_COMPUTE_UNIT)
+        set(CPACK_SOC "${CANN_COMPUTE_UNIT}")
+    else()
+        set(CPACK_SOC)
+    endif()
+
+    set(CPACK_PACKAGE_VERSION "${CANN_VERSION_${component}_VERSION}")
+    set(PKG_NAME "cann-${component}_${CPACK_PACKAGE_VERSION}_linux-${CMAKE_SYSTEM_PROCESSOR}.run")
+    set(OUTPUT_FILEPATH "${CMAKE_BINARY_DIR}/${target}/${PKG_NAME}")
+
+    add_custom_command(
+        OUTPUT ${OUTPUT_FILEPATH}
+        COMMAND ${CMAKE_COMMAND}
+            -D CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+            -D CPACK_CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
+            -D STAGING_DIR=${CMAKE_BINARY_DIR}/${target}/makeself_staging
+            -D MAKESELF_EXE=${CANN_3RD_LIB_PATH}/makeself/makeself.sh
+            -D MAKESELF_HEADER_EXE=${CANN_3RD_LIB_PATH}/makeself/makeself-header.sh
+            -D CPACK_PACKAGE_VERSION=${CPACK_PACKAGE_VERSION}
+            -D CPACK_CMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/${target}
+            -D CPACK_SOC=${CPACK_SOC}
+            -D COMPONENT=${component}
+            -D SHARE_INFO_NAME=${SHARE_INFO_NAME}
+            -D SOURCE_DIR=${source_dir}
+            -D ENABLE_DEVICE=${ENABLE_DEVICE}
+            -P ${CANN_CMAKE_DIR}/scripts/package/_pack_run_package.cmake
+        DEPENDS ${CANN_DEPENDS}
+        VERBATIM
+    )
+    add_custom_target(${target} ALL
+        DEPENDS ${OUTPUT_FILEPATH}
+    )
+
+    set(${target} "${OUTPUT_FILEPATH}" PARENT_SCOPE)
+endfunction()

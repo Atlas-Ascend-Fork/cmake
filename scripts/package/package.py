@@ -110,9 +110,12 @@ def get_compress_cmd(
         if pkg_args.independent_pkg:
             pack_cmds = ["TMPDIR=$pwd"] + pack_cmds
             exec_pack_cmd(delivery_dir, " ".join(pack_cmds), package_name.getvalue())
+        if pkg_args.command_output:
+            output_filepath = pkg_args.command_output
+        else:
+            output_filepath = os.path.join(build_dir, "makeself.txt")
         try:
-            makeself_dir = os.path.join(build_dir, "makeself.txt")
-            with open(makeself_dir, "w") as f:
+            with open(output_filepath, "w") as f:
                 f.write(" ".join(pack_cmds))
         except Exception as exception:
             CommLog.cilog_error(f"save makeself.txt failed!{str(exception)}")
@@ -1175,6 +1178,9 @@ def args_parse():
         "--version_dir", nargs="?", const="", default="", help="Set version dir."
     )
     parser.add_argument("--tag", metavar="tag", nargs="?", const="", default="")
+    parser.add_argument(
+        "--command-output", help="File path of the output compression command."
+    )
     parser.add_argument(
         "--disable-multi-version", action="store_true", help="Disable multi version."
     )

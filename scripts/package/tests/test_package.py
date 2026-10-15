@@ -173,6 +173,7 @@ def setup_compress_cmd_test(monkeypatch, tmp_path, independent_pkg=True):
         pkg_output_dir=str(tmp_path),
         makeself_dir=str(tmp_path / "makeself"),
         independent_pkg=independent_pkg,
+        command_output=None,
     )
 
     # Use shared MockPackageName class
@@ -1734,6 +1735,7 @@ class TestGetCompressCmd:
             pkg_output_dir=str(tmp_path),
             makeself_dir=str(tmp_path / "makeself"),
             independent_pkg=False,
+            command_output=None,
         )
 
         # Use shared MockPackageName class
