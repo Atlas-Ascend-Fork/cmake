@@ -188,8 +188,8 @@ def safe_run_cmd(cmd_list: List[str], work_dir=None, timeout=None) -> Tuple[bool
 # 签名产物类型默认值，查询失败时回退，保持对未更新第三方脚本的向后兼容
 DEFAULT_SIGN_EXT = ".p7s"
 DEFAULT_CERTTYPE = "1"
-# 查询子进程超时（秒），查询仅做 arg 解析 + print，10 秒足够
-QUERY_TIMEOUT = 10
+# 查询子进程超时（秒），查询仅做 arg 解析 + print，高负载场景耗时较长
+QUERY_TIMEOUT = 60
 
 
 def query_sign_attr(sign_tool_path: str, flag: str) -> Optional[str]:
