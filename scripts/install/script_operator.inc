@@ -484,8 +484,6 @@ add_prereq_check() {
 
             echo "${shell_path}" >> ${common_path}
             ret="$?" && [ $ret -ne 0 ] && return $ret
-
-            chmod u-w ${common_path}
         else
             echo "#!/usr/bin/env ${type}" > ${common_path}
             ret="$?" && [ $ret -ne 0 ] && return $ret
@@ -525,8 +523,6 @@ del_prereq_check() {
 
         sed -i "/^${path_regex}$/d" "${common_path}"
         ret="$?" && [ $ret -ne 0 ] && return $ret
-
-        chmod u-w "${common_path}"
 
         local num=$(grep -r "prereq_check.${type}" "${common_path}" | wc -l)
         if [ "${num}" -eq 0 ]; then
