@@ -17,7 +17,7 @@ BUILD_PATH="${BASEPATH}/build"
 # print usage message
 usage() {
   echo "Usage:"
-  echo "  sh build.sh --pkgs=<PACKAGES> [-h | --help] [-v | --verbose] [-j<N>]"
+  echo "  bash build.sh --pkgs=<PACKAGES> [-h | --help] [-v | --verbose] [-j<N>]"
   echo "              [--binary-pkgs=<PACKAGES>]"
   echo "              [--superbuild-config=<PATH>] [--p=<PATH> | --cann_path=<PATH>]"
   echo "              [--cann_3rd_lib_path=<PATH>] [--cann-version]"

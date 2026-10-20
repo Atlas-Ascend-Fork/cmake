@@ -176,7 +176,7 @@ ge-executor      → metadef, runtime
 hcomm            → runtime, metadef, bisheng-compiler, asc-devkit
 ```
 
-执行 `sh build.sh --pkgs=hcomm` 时的解析过程：
+执行 `bash build.sh --pkgs=hcomm` 时的解析过程：
 
 ```
 初始:  CANN_PACKAGES = [hcomm]
@@ -419,7 +419,7 @@ cmake --build build --target package   ← 编译并打包
 
 5. **构建**：
    ```bash
-   sh build.sh --pkgs=newpkg
+   bash build.sh --pkgs=newpkg
    ```
 
 ### 8.2 新增 device 侧构建
@@ -431,7 +431,7 @@ cmake --build build --target package   ← 编译并打包
 查看完整的 cmake 配置命令：
 
 ```bash
-sh build.sh --pkgs=runtime -v
+bash build.sh --pkgs=runtime -v
 ```
 
 查看生成的构建系统：
@@ -450,7 +450,7 @@ cmake --build build --target help | grep cann
 ### 8.4 使用自定义 superbuild 配置
 
 ```bash
-sh build.sh --pkgs=runtime --superbuild-config=/path/to/custom_config.cmake
+bash build.sh --pkgs=runtime --superbuild-config=/path/to/custom_config.cmake
 ```
 
 自定义配置文件在 `config.cmake` 之后加载，可覆盖包映射或添加新定义。

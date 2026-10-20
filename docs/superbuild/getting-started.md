@@ -53,26 +53,26 @@ CANN_TOP_DIR/                     ← 父目录（CANN_TOP_DIR）
 
 ```bash
 # --pkgs 为必选参数，逗号分隔包名
-sh build.sh --pkgs=<PACKAGES> [-j<N>] [-v] [--pkg-type=run|rpm|deb] [--build-type=Release|Debug]
+bash build.sh --pkgs=<PACKAGES> [-j<N>] [-v] [--pkg-type=run|rpm|deb] [--build-type=Release|Debug]
 ```
 
 ### 示例
 
 ```bash
 # 构建 runtime 包
-sh build.sh --pkgs=runtime
+bash build.sh --pkgs=runtime
 
 # 构建 runtime 和 asc-devkit，16 线程，verbose 输出
-sh build.sh --pkgs=runtime,asc-devkit -j16 -v
+bash build.sh --pkgs=runtime,asc-devkit -j16 -v
 
 # 构建 rpm 包
-sh build.sh --pkgs=runtime --pkg-type=rpm
+bash build.sh --pkgs=runtime --pkg-type=rpm
 
 # Debug 构建
-sh build.sh --pkgs=runtime --build-type=Debug
+bash build.sh --pkgs=runtime --build-type=Debug
 
 # 仅构建 host 侧，跳过 device 交叉编译
-sh build.sh --pkgs=runtime --build_host_only
+bash build.sh --pkgs=runtime --build_host_only
 ```
 
 ### 参数说明
@@ -133,7 +133,7 @@ sh build.sh --pkgs=runtime --build_host_only
 内置 `toolchain/aarch64-hcc-toolchain.cmake` 用于 hcc 交叉编译 device 侧。如需使用 clang/LLVM 工具链，可指定 `--device-toolchain` 指向 `toolchain/aarch64-clang-toolchain.cmake`：
 
 ```bash
-sh build.sh --pkgs=runtime \
+bash build.sh --pkgs=runtime \
   --device-toolchain=cmake/toolchain/aarch64-clang-toolchain.cmake \
   --device-toolchain-dir=/usr/lib/llvm-15
 ```

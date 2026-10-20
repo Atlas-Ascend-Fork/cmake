@@ -73,10 +73,10 @@ add_cann_sign_file(
 
 ```bash
 # 启用签名
-sh build.sh --pkgs=runtime --enable-sign
+bash build.sh --pkgs=runtime --enable-sign
 
 # 指定自定义签名脚本
-sh build.sh --pkgs=runtime --enable-sign --sign-script /path/to/custom_sign.py
+bash build.sh --pkgs=runtime --enable-sign --sign-script /path/to/custom_sign.py
 ```
 
 `add_cann_sign_file` 的完整参数说明参见 [public-api.md](../framework/public-api.md#签名)。
@@ -132,7 +132,7 @@ python3 scripts/sign/add_header_sign.py /path/to/images true \
 
 ```bash
 # 通过 CMake 变量指定（build.sh 透传）
-sh build.sh --pkgs=runtime --enable-sign --sign-script /path/to/custom_sign_build.py
+bash build.sh --pkgs=runtime --enable-sign --sign-script /path/to/custom_sign_build.py
 
 # 或直接调用编排器
 python3 scripts/sign/add_header_sign.py /path/to/images true \
@@ -253,7 +253,7 @@ export SIGN_CLIENT_PATH=/path/to/signatrust_client
 export SIGN_CLIENT_CONFIG=/path/to/client.toml
 
 # 2. 通过 build.sh 启用签名
-sh build.sh --pkgs=runtime --enable-sign
+bash build.sh --pkgs=runtime --enable-sign
 
 # 或直接调用
 python3 scripts/sign/add_header_sign.py /tmp/images true \
