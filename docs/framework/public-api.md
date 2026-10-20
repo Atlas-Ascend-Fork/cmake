@@ -87,8 +87,6 @@ check_cann_build_tool(protoc HINT "Run: pip install protobuf")
 
 | 选项 | 说明 |
 |------|------|
-| `NO_COMPONENT_INSTALL` | 不带 `--component` 参数安装 |
-| `NO_CLEAN` | 不清理临时文件 |
 | `TGZ` | 生成 TGZ 包（而非 makeself/run 包） |
 | `ENABLE_DEVICE` | 是否解压 `device-<component>.tar.gz` |
 | `PACKAGE_TYPE` | 包类型：`run`/`rpm`/`deb` |
