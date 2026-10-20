@@ -27,7 +27,7 @@ python3 -m pytest scripts/package/tests/          # packaging tests (from repo r
 python3 -m pytest scripts/version/tests/          # version info generation tests
 python3 -m pytest scripts/build_analysis/tests/   # IWYU log parser tests
 python3 -m pytest scripts/sign/tests/             # signing script tests
-python3 -m pytest scripts/package/tests/test_package.py::TestClass -v   # single test
+python3 -m pytest scripts/package/tests/test_package.py::TestGetComments -v   # single test
 ```
 
 - No `pytest.ini`/`pyproject.toml`. Each test dir has its own `conftest.py` that prepends its parent to `sys.path` so modules import without install.

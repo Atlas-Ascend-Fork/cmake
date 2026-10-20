@@ -52,5 +52,5 @@
 python3 -m pytest scripts/
 
 # 运行单个测试
-python3 -m pytest scripts/package/tests/test_package.py::TestClass -v
+python3 -m pytest scripts/package/tests/test_package.py::TestGetComments -v
 ```
