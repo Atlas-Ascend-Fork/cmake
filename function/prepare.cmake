@@ -1405,7 +1405,7 @@ endfunction()
 function(pack_cann_run_package target component source_dir)
     cmake_parse_arguments(CANN
         ""
-        "SHARE_INFO_NAME;ENABLE_DEVICE;COMPUTE_UNIT"
+        "SHARE_INFO_NAME;ENABLE_DEVICE;COMPUTE_UNIT;VERSION"
         "DEPENDS"
         ${ARGN}
     )
@@ -1428,7 +1428,12 @@ function(pack_cann_run_package target component source_dir)
         set(CPACK_SOC)
     endif()
 
-    set(CPACK_PACKAGE_VERSION "${CANN_VERSION_${component}_VERSION}")
+    if(CANN_VERSION)
+        set(CPACK_PACKAGE_VERSION "${CANN_VERSION}")
+    else()
+        set(CPACK_PACKAGE_VERSION "${CANN_VERSION_${component}_VERSION}")
+    endif()
+
     set(PKG_NAME "cann-${component}_${CPACK_PACKAGE_VERSION}_linux-${CMAKE_SYSTEM_PROCESSOR}.run")
     set(OUTPUT_FILEPATH "${CMAKE_BINARY_DIR}/${target}/${PKG_NAME}")
 
