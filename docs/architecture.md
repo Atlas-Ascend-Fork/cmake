@@ -144,7 +144,7 @@ get_pkg_dependencies("runtime")
 - **Sanitizer**：ASan/TSan/UBSan，通过 `ENABLE_ASAN`/`ENABLE_TSAN`/`ENABLE_UBSAN` 控制
 - **严格告警**：`-Wformat=2`/`-Wduplicated-branches`/`-Wlogical-op` 等，通过 `ENABLE_STRICT_WARNINGS` 控制（默认关闭）。须在首次 include `intf_pub` 之前设置方可生效
 - **ABI**：`CANN_CXX11_ABI` 在 `init_cann_project()` 中统一计算（`function/prepare.cmake`），供 `intf_pub` 及三方库共用。host 默认 `_GLIBCXX_USE_CXX11_ABI=0`（旧 ABI），device 默认 `1`，`USE_CXX11_ABI` 可覆盖
-- **`__FILE__` 宏改写**：非 Ninja 模式下，编译规则被覆写为只输出文件名（不输出完整路径），同时添加 `-Wno-builtin-macro-redefined`。device 工具链文件中同样覆写
+- **`__FILE__` 路径重映射**（仅单仓 `TOPLEVEL_PROJECT` 与新框架联编 `ENABLE_UNIFIED_BUILD` 生效；老框架联编直接走旧版回退，行为不变）：`init_cann_project()` 在 configure 期检测 `-fmacro-prefix-map` 支持（`check_c(XX)_compiler_flag`，结果缓存，已启用 C/CXX 须全部支持），支持则将前缀映射选项经 `CANN_FILE_REMAP_FLAGS` 交给 `intf_pub_linux.cmake` 挂到 `intf_pub_base`（Make/Ninja 通用，`__FILE__` 输出源码树相对路径，与 CMake PCH 兼容；仅链接 intf_pub 族的 target 生效）；映射根默认自动计算（单仓 = 仓库根、联编 = `CANN_TOP_DIR`，均另追加 `CMAKE_BINARY_DIR`），cache 变量 `CANN_FILE_REMAP_ROOT`（分号分隔多根）可整体覆盖自动源码根；不支持（gcc 7.x）或老框架联编时回退旧版编译规则覆写（Make 生成器下经 `CMAKE_C(XX)_COMPILE_OBJECT` 注入 `-D__FILE__` basename，Ninja 下不重映射，均静默），不干预 PCH（与旧版一致）。device 侧编译器均高于 gcc 7，恒走 prefix-map 路径，工具链文件不再覆写编译规则
 
 ### C++ 标准
 

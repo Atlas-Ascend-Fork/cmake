@@ -53,6 +53,13 @@ if(ENABLE_STRICT_WARNINGS)
     )
 endif()
 
+# __FILE__ 路径重映射：选项由 __cann_setup_file_remap（经 init_cann_project）在 configure 期
+# 探测并计算（编译器不支持或老框架联编时变量为空），此处统一挂到 intf_pub_base，所有链接
+# intf_pub 族的 target 生效；未调用 init_cann_project 的直接 include 场景变量未定义，自动跳过
+if(CANN_FILE_REMAP_SUPPORTED AND CANN_FILE_REMAP_FLAGS)
+    target_compile_options(intf_pub_base INTERFACE ${CANN_FILE_REMAP_FLAGS})
+endif()
+
 # ABI 值由 init_cann_project() 统一计算，此处直接引用
 # 若未调用 init_cann_project()（如直接 include intf_pub），使用与 init_cann_project 一致的默认值
 if(NOT DEFINED CANN_CXX11_ABI)

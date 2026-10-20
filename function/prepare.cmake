@@ -59,6 +59,144 @@ macro(add_cann_target_options)
     include(${CANN_CMAKE_DIR}/intf_pub/intf_pub_linux.cmake)
 endmacro()
 
+# __FILE__ 路径重映射（在 init_cann_project 中调用，须位于 add_subdirectory 引入组件仓之前）
+#
+# 目标：__FILE__（及 __builtin_FILE）输出源码树相对路径，不泄露构建机绝对路径。
+# 手段：-fmacro-prefix-map=<前缀>=.（GCC 8+/Clang 10+，生成器无关、PCH 兼容，业界标准做法），
+#       编译器展开源文件绝对路径时，命中前缀的部分替换为 "."，例（前缀=仓库根）：
+#       /home/user/cann/runtime/src/a.cc  ->  ./src/a.cc
+#
+# 生效范围：单仓（TOPLEVEL_PROJECT）与新框架联编（ENABLE_UNIFIED_BUILD）；
+# 老框架联编（两者皆否）直接置 FALSE 回退旧版行为，不做探测不做注入
+#
+# 本函数产出：
+#   - 模式与编译器能力均满足时：置 CANN_FILE_REMAP_SUPPORTED=TRUE 与 CANN_FILE_REMAP_FLAGS
+#     （均 PARENT_SCOPE，供 intf_pub_linux.cmake 消费）；FLAGS 为每个归一化前缀一条选项
+#     （genex 语言列表按已启用语言拼接），由 intf_pub_linux.cmake 挂到 intf_pub_base，
+#     仅链接 intf_pub 族的 target 生效；探测结果进 cache（CANN_C(XX)_HAS_MACRO_PREFIX_MAP，
+#     同一 build 目录只探测一次）；打一条 STATUS 消息
+#   - 任一条件不满足（老框架联编 / gcc 7.x 无此选项 / 已启用 C/CXX 未全部支持）时：
+#     仅置 CANN_FILE_REMAP_SUPPORTED=FALSE，零注入零消息，由 init_cann_project 兜底回退
+#     旧版编译规则覆写（详见调用处注释）
+#
+# 映射前缀的选取 —— 与编译命令中源文件路径的字面前缀保持一致（不做 REALPATH 改写，
+# 避免 symlink 检出场景失配）：
+#   - 用户设置 CANN_FILE_REMAP_ROOT（cache，分号分隔多根）时：整体覆盖下方自动源码根
+#   - 单仓（TOPLEVEL_PROJECT）：仓库根（device 入口在 <仓库>/cmake/device，源码在仓库根下，需回溯两层）
+#   - 联编（host/device superbuild）：CANN_TOP_DIR（REALPATH，与 function.cmake 的计算方式一致）
+#   - CMAKE_BINARY_DIR：生成源（如 .pb.cc）所在，仅当不在已有前缀之下时追加
+#   - 三方件（CANN_3RD_LIB_PATH）不映射：经 ExternalProject 独立构建，不继承父工程编译选项
+function(__cann_setup_file_remap)
+    # 用户自定义映射根（cache 变量，-D 可传，分号分隔多根），相对路径补全为绝对路径
+    set(CANN_FILE_REMAP_ROOT "" CACHE STRING "Custom source root(s) for __FILE__ remap, overrides the auto-detected root")
+
+    # 1. 模式守卫：老框架联编（未设置 ENABLE_UNIFIED_BUILD）不走 prefix-map，
+    #    置 FALSE 交由调用方回退旧版编译规则覆写，与该特性合入前行为完全一致
+    if(NOT TOPLEVEL_PROJECT AND NOT ENABLE_UNIFIED_BUILD)
+        set(CANN_FILE_REMAP_SUPPORTED FALSE PARENT_SCOPE)
+        return()
+    endif()
+
+    # 2. 能力探测（先于一切前缀计算，样本用合成值：编译器是否接受该选项与路径取值无关）：
+    #    C/CXX 各自探测、结果按变量名进 cache；判定取 AND——已启用语言须全部支持，
+    #    异构工具链（如 CC=gcc-7、CXX=g++-9）下一并回退、行为全仓一致；
+    #    探测仅编译成静态库，规避交叉工具链下的链接依赖
+    set(_flag "-fmacro-prefix-map=")
+    set(_probe_flag "${_flag}x=x")
+    get_property(_langs GLOBAL PROPERTY ENABLED_LANGUAGES)
+    set(_applicable_langs)
+    set(_supported TRUE)
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    if("C" IN_LIST _langs)
+        list(APPEND _applicable_langs C)
+        include(CheckCCompilerFlag)
+        check_c_compiler_flag("${_probe_flag}" CANN_C_HAS_MACRO_PREFIX_MAP)
+        if(NOT CANN_C_HAS_MACRO_PREFIX_MAP)
+            set(_supported FALSE)
+        endif()
+    endif()
+    if("CXX" IN_LIST _langs)
+        list(APPEND _applicable_langs CXX)
+        include(CheckCXXCompilerFlag)
+        check_cxx_compiler_flag("${_probe_flag}" CANN_CXX_HAS_MACRO_PREFIX_MAP)
+        if(NOT CANN_CXX_HAS_MACRO_PREFIX_MAP)
+            set(_supported FALSE)
+        endif()
+    endif()
+    unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
+    if(NOT _applicable_langs OR NOT _supported)
+        # 无 C/CXX 语言或存在不支持的已启用语言（如 gcc 7.x）：静默回退
+        set(CANN_FILE_REMAP_SUPPORTED FALSE PARENT_SCOPE)
+        return()
+    endif()
+
+    # 3. 计算映射前缀根（原始列表：源码根 + CMAKE_BINARY_DIR）
+    set(_prefixes)
+    set(_root_from_user FALSE)
+    if(CANN_FILE_REMAP_ROOT)
+        set(_root_from_user TRUE)
+        foreach(_r IN LISTS CANN_FILE_REMAP_ROOT)
+            get_filename_component(_r "${_r}" ABSOLUTE)
+            list(APPEND _prefixes "${_r}")
+        endforeach()
+    elseif(TOPLEVEL_PROJECT)
+        if(PRODUCT_SIDE STREQUAL "device")
+            get_filename_component(_root "${CMAKE_SOURCE_DIR}/../.." ABSOLUTE)
+        else()
+            set(_root "${CMAKE_SOURCE_DIR}")
+        endif()
+        list(APPEND _prefixes "${_root}")
+    else()
+        get_filename_component(_root "${CANN_CMAKE_DIR}/.." REALPATH)
+        list(APPEND _prefixes "${_root}")
+    endif()
+    list(APPEND _prefixes "${CMAKE_BINARY_DIR}")
+
+    # 4. 归一化：去尾斜杠 + 去重 + 剔除互相嵌套的前缀（保留更短者，不依赖多条 map 的匹配优先级）
+    #    嵌套判定：_p 相对已收录前缀 _f 的路径不以 ../ 开头，即 _p 落在 _f 之下；
+    #    例：[CANN_TOP_DIR, CANN_TOP_DIR/build] -> 仅保留 CANN_TOP_DIR（build 嵌套于其下）
+    set(_normalized)
+    foreach(_p IN LISTS _prefixes)
+        string(REGEX REPLACE "/+$" "" _p "${_p}")
+        if(NOT _p)
+            continue()
+        endif()
+        set(_covered FALSE)
+        foreach(_f IN LISTS _normalized)
+            file(RELATIVE_PATH _rel "${_f}" "${_p}")
+            if(NOT _rel MATCHES "^\\.\\./")
+                set(_covered TRUE)
+                break()
+            endif()
+        endforeach()
+        if(NOT _covered)
+            list(APPEND _normalized "${_p}")
+        endif()
+    endforeach()
+    if(NOT _normalized)
+        # 无可映射前缀（实际不可达，兜底）：视为已走 prefix-map 路径，不触发调用方回退
+        set(CANN_FILE_REMAP_SUPPORTED TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    # 5. 构造并导出：每前缀一条选项（genex 语言列表按已启用语言拼接，Make/Ninja 通用，
+    #    compile_commands.json 干净），经 CANN_FILE_REMAP_FLAGS 交由 intf_pub_linux.cmake
+    #    挂到 intf_pub_base（仅链接 intf_pub 族的 target 生效）
+    list(JOIN _applicable_langs "," _langs_genex)
+    set(_opts)
+    foreach(_p IN LISTS _normalized)
+        list(APPEND _opts "$<$<COMPILE_LANGUAGE:${_langs_genex}>:${_flag}${_p}=.>")
+    endforeach()
+    set(CANN_FILE_REMAP_FLAGS ${_opts} PARENT_SCOPE)
+    set(CANN_FILE_REMAP_SUPPORTED TRUE PARENT_SCOPE)
+    string(REPLACE ";" " " _prefixes_str "${_normalized}")
+    if(_root_from_user)
+        message(STATUS "__FILE__ remap active (CANN_FILE_REMAP_ROOT): ${_flag}${_prefixes_str} -> .")
+    else()
+        message(STATUS "__FILE__ remap active: ${_flag}${_prefixes_str} -> .")
+    endif()
+endfunction()
+
 # 生成 DEB 和 RPM 依赖字符串
 # 辅助函数：规范化版本比较符，确保操作符与版本号之间有空格
 function(normalize_version_cond input_str output_var)
@@ -158,13 +296,19 @@ macro(init_cann_project)
         set(CMAKE_CXX_STANDARD_REQUIRED ON)
         set(CMAKE_CXX_EXTENSIONS OFF)
 
-        if(NOT CMAKE_GENERATOR STREQUAL "Ninja")
-                set(CMAKE_CXX_COMPILE_OBJECT
-                    "<CMAKE_CXX_COMPILER> <DEFINES> -D__FILE__='\"$(notdir $(abspath <SOURCE>))\"' -Wno-builtin-macro-redefined <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>"
-                )
-                set(CMAKE_C_COMPILE_OBJECT
-                    "<CMAKE_C_COMPILER> <DEFINES> -D__FILE__='\"$(notdir $(abspath <SOURCE>))\"' -Wno-builtin-macro-redefined <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>"
-                )
+        # __FILE__ 重映射：模式（单仓或 ENABLE_UNIFIED_BUILD 联编）与编译器能力均满足时
+        # 将 -fmacro-prefix-map 选项经 intf_pub_base 注入（生成器无关、PCH 兼容，仅链接
+        # intf_pub 族的 target 生效）；否则（gcc 7.x 或老框架联编）回退旧版编译规则覆写
+        # （-D__FILE__ 取 basename，仅 Make 生成器生效，Ninja 下不重映射），静默处理，
+        # 不干预 PCH（与旧版行为一致）
+        __cann_setup_file_remap()
+        if(NOT CANN_FILE_REMAP_SUPPORTED AND CMAKE_GENERATOR MATCHES "Makefiles")
+            set(CMAKE_C_COMPILE_OBJECT
+                "<CMAKE_C_COMPILER> <DEFINES> -D__FILE__='\"$(notdir $(abspath <SOURCE>))\"' -Wno-builtin-macro-redefined <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>"
+            )
+            set(CMAKE_CXX_COMPILE_OBJECT
+                "<CMAKE_CXX_COMPILER> <DEFINES> -D__FILE__='\"$(notdir $(abspath <SOURCE>))\"' -Wno-builtin-macro-redefined <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>"
+            )
         endif()
 
         option(ENABLE_CCACHE "Enable ccache" TRUE)

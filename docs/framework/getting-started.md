@@ -86,7 +86,7 @@ init_cann_project()
 |------|------|
 | 设置 C++17 标准 | `CMAKE_CXX_STANDARD 17`，`CMAKE_CXX_EXTENSIONS OFF` |
 | 启用 ccache | `ENABLE_CCACHE` 默认 `TRUE`，自动检测并设置为编译器启动器 |
-| `__FILE__` 宏改写 | 非 Ninja 模式下，`__FILE__` 只输出文件名而非完整路径 |
+| `__FILE__` 路径重映射 | 仅单仓与 `ENABLE_UNIFIED_BUILD` 联编生效：编译器支持时经 `intf_pub_base` 注入 `-fmacro-prefix-map`（链接 intf_pub 族的 target 生效，Make/Ninja/PCH 均兼容），输出相对路径；映射根可用 `CANN_FILE_REMAP_ROOT` 覆盖；gcc 7.x 或老框架联编时回退旧版 Make 规则覆写（Ninja 下不重映射，静默），不干预 PCH |
 | 设置安装路径变量 | `INSTALL_LIBRARY_DIR`、`INSTALL_RUNTIME_DIR` 等 |
 | 解析 CANN 工具包路径 | `ASCEND_INSTALL_PATH` ← `ASCEND_CANN_PACKAGE_PATH` |
 | 设置第三方库默认路径 | `CANN_3RD_LIB_PATH` 默认为 `${CMAKE_SOURCE_DIR}/third_party` |
