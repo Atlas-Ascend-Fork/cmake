@@ -17,6 +17,9 @@ if(NOT TOOLCHAIN_DIR)
         "(e.g. -DTOOLCHAIN_DIR=/usr/lib/llvm-15) to locate clang/lld/llvm-ar.")
 endif()
 
+# Forward the compiler root when CMake probes the compiler in a nested try_compile project.
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES TOOLCHAIN_DIR)
+
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
