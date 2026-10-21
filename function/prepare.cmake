@@ -1235,6 +1235,7 @@ function(gen_cann_version_header pkg_name)
     endif()
     add_custom_command(OUTPUT ${OUTPUT_PATH}
         COMMAND bash ${CANN_CMAKE_DIR}/scripts/package/generate_version_header.sh "${pkg_name}" "${CANN_VERSION}" --output ${OUTPUT_PATH} ${TIMESTAMP_OPTION}
+        DEPENDS ${CANN_CMAKE_DIR}/scripts/package/generate_version_header.sh
     )
     add_custom_target(gen_${pkg_name}_version_header ALL DEPENDS ${OUTPUT_PATH})
     if(NOT PRODUCT_SIDE STREQUAL "device")

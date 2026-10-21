@@ -172,6 +172,8 @@ clone_cann_target(ORIGIN ccl_kernel OUTPUT aicpu_custom IGNORE_PROP LINK_LIBRARI
 
 生成版本号头文件 `${CMAKE_BINARY_DIR}/include/version/<pkg>_version.h`，并安装到 `<arch>-linux/include/version/`。
 
+增量构建会跟踪版本头生成脚本的修改，脚本更新后重新生成头文件。
+
 ### `add_cann_version_info_targets()`
 
 为每个已声明的包生成 `version.<pkg>.info` 文件的自定义目标。
