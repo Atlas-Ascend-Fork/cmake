@@ -49,7 +49,7 @@ CANN 镜像在发布前需要完成安全加固：绑定版本信息、安全版
 │  esbc_header.py — 写入 256 字节 ESBC 二级头                       │
 │  ini_gen.py — 计算镜像 SHA256 摘要                                │
 │  image_pack.py — 绑定完整镜像头（0x600 字节）                     │
-│  ci_img_headler.py — 从已加头镜像提取原始镜像                      │
+│  ci_img_handler.py — 从已加头镜像提取原始镜像                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,7 +66,7 @@ CANN 镜像在发布前需要完成安全加固：绑定版本信息、安全版
 | `esbc_header.py` | ESBC 头工具 | 原始镜像 + 版本/nvcnt/tag | 加了 256B 头的镜像 |
 | `ini_gen.py` | 摘要生成工具 | 镜像列表 XML | 每个镜像的 `.ini` 摘要文件 |
 | `image_pack.py` | 镜像加头工具 | 镜像 + 签名/摘要/CRL | 加了完整头的镜像 |
-| `ci_img_headler.py` | 镜像提取工具 | 已加头镜像 | 原始镜像（逆向操作） |
+| `ci_img_handler.py` | 镜像提取工具 | 已加头镜像 | 原始镜像（逆向操作） |
 
 ### 2.3 调用链
 
@@ -591,4 +591,4 @@ CRL → DER 格式转换
 
 ### 11.4 修改镜像头格式
 
-镜像头格式定义在 `scripts/signtool/image_pack/hi_platform/platform.py` 的头构造函数中。修改 `struct.Struct` 格式字符串和对应字段即可，但需同步修改 `ci_img_headler.py` 的提取逻辑，并确保 `esbc_header.py` 的 ESBC 头结构与 BIOS 头中的相关字段保持一致。
+镜像头格式定义在 `scripts/signtool/image_pack/hi_platform/platform.py` 的头构造函数中。修改 `struct.Struct` 格式字符串和对应字段即可，但需同步修改 `ci_img_handler.py` 的提取逻辑，并确保 `esbc_header.py` 的 ESBC 头结构与 BIOS 头中的相关字段保持一致。

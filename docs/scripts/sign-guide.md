@@ -292,7 +292,7 @@ A: `scripts/signtool/esbc_header/` 目录不存在。确保 cmake 仓库完整�
 
 **Q: 镜像已有头，提示 "No need to add head again"**
 
-A: `esbc_header.py` 和 `image_pack.py` 会检测镜像头的 magic number（`0x55aa55aa`），已加头的镜像会被跳过。如需重新加头，先用 `ci_img_headler.py --rcvr` 提取原始镜像。
+A: `esbc_header.py` 和 `image_pack.py` 会检测镜像头的 magic number（`0x55aa55aa`），已加头的镜像会被跳过。如需重新加头，先用 `ci_img_handler.py --rcvr` 提取原始镜像。
 
 **Q: `sign_flag` 的三种行为分别是什么？**
 
