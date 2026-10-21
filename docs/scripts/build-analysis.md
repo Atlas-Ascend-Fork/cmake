@@ -14,6 +14,14 @@
 
 解析 IWYU (Include What You Use) 日志，自动识别和修复 C/C++ 头文件依赖问题。
 
+以下示例在待分析的 C/C++ 工程根目录执行。先在同一个终端设置解析器路径；典型 CANN 组件与 `cmake` 仓库位于同一父目录，若目录布局不同，请改为实际的绝对路径：
+
+```bash
+IWYU_PARSER="$(cd ../cmake && pwd)/scripts/build_analysis/iwyu_log_parser.py"
+```
+
+这样从组件仓库执行 `iwyu_tool.py` 时，解析器也能找到 `cmake` 仓库中的脚本，并以组件仓库为工作目录解析日志中的源码路径。
+
 ## 功能特性
 
 - **解析 IWYU 日志**：识别需要添加、移除的头文件依赖
@@ -68,13 +76,13 @@ include-what-you-use -Xiwyu --mapping_file=... source.cpp > iwyu.log 2>&1
 
 ```bash
 # 从文件读取
-python iwyu_log_parser.py iwyu.log
+python3 "$IWYU_PARSER" iwyu.log
 
 # 从管道读取
-iwyu_tool.py -p build/ | python iwyu_log_parser.py -
+iwyu_tool.py -p build/ | python3 "$IWYU_PARSER" -
 
 # 导出报告到文件
-python iwyu_log_parser.py iwyu.log --report-out report.txt
+python3 "$IWYU_PARSER" iwyu.log --report-out report.txt
 ```
 
 ### 3. 自动修复（推荐流程）
@@ -83,7 +91,7 @@ python iwyu_log_parser.py iwyu.log --report-out report.txt
 
 **阶段一：注释冗余头文件**
 ```bash
-python iwyu_log_parser.py iwyu.log --fix
+python3 "$IWYU_PARSER" iwyu.log --fix
 ```
 
 此操作会将 `.c/.cpp/.cc` 文件中的冗余用户头文件注释掉（添加 `[iwyu-fix]` 标记以区别于用户原有注释）：
@@ -102,7 +110,7 @@ python iwyu_log_parser.py iwyu.log --fix
 1. 编译项目验证修改正确性
 2. 确认无误后，永久删除脚本标记的注释行：
 ```bash
-python iwyu_log_parser.py iwyu.log --clean-commented
+python3 "$IWYU_PARSER" iwyu.log --clean-commented
 ```
 
 > `--clean-commented` 仅删除带有 `[iwyu-fix]` 标记的注释行，用户原有的 `// #include ...` 注释不会被误删。
@@ -113,10 +121,10 @@ python iwyu_log_parser.py iwyu.log --clean-commented
 
 ```bash
 # 预览哪些文件将被注释冗余头文件
-python iwyu_log_parser.py iwyu.log --fix --dry-run
+python3 "$IWYU_PARSER" iwyu.log --fix --dry-run
 
 # 预览哪些文件将被清理注释行
-python iwyu_log_parser.py iwyu.log --clean-commented --dry-run
+python3 "$IWYU_PARSER" iwyu.log --clean-commented --dry-run
 ```
 
 ## 命令行参数
@@ -241,7 +249,7 @@ A: 可能原因：
 
 **Q: 注释后编译失败怎么办？**
 
-A: 
+A:
 1. 从版本控制恢复文件
 2. 检查 IWYU 建议是否准确，某些建议可能不适用于您的代码环境
 3. 手动选择性修复，跳过有问题的建议
@@ -251,11 +259,11 @@ A:
 A: 两个参数必须分步执行：
 ```bash
 # 错误用法
-python iwyu_log_parser.py iwyu.log --fix --clean-commented
+python3 "$IWYU_PARSER" iwyu.log --fix --clean-commented
 
 # 正确用法
-python iwyu_log_parser.py iwyu.log --fix     # 第一步
-python iwyu_log_parser.py iwyu.log --clean-commented  # 第二步（验证后）
+python3 "$IWYU_PARSER" iwyu.log --fix     # 第一步
+python3 "$IWYU_PARSER" iwyu.log --clean-commented  # 第二步（验证后）
 ```
 
 这样可以确保先验证 `--fix` 的修改正确性，再执行不可逆的清理操作。
@@ -277,7 +285,7 @@ A: 可以，但**不能直接使用 `grep`**。IWYU 日志按块组织，每块�
 
 正确做法是使用 `awk` 段落模式（`RS=''`）按空行分段，提取包含目标文件的**完整块**：
 ```bash
-awk -v RS='' -v ORS='\n\n' '/target_file\.cpp/' iwyu.log | python iwyu_log_parser.py -
+awk -v RS='' -v ORS='\n\n' '/target_file\.cpp/' iwyu.log | python3 "$IWYU_PARSER" -
 ```
 
 **Q: 为什么有些文件处理失败？**
@@ -302,22 +310,22 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build .
 iwyu_tool.py -p build/ > iwyu.log 2>&1
 
 # 3. 查看分析报告
-python iwyu_log_parser.py iwyu.log --report-out iwyu_report.txt
+python3 "$IWYU_PARSER" iwyu.log --report-out iwyu_report.txt
 
 # 4. 预览将要注释的冗余头文件
-python iwyu_log_parser.py iwyu.log --fix --dry-run
+python3 "$IWYU_PARSER" iwyu.log --fix --dry-run
 
 # 5. 注释冗余头文件
-python iwyu_log_parser.py iwyu.log --fix
+python3 "$IWYU_PARSER" iwyu.log --fix
 
 # 6. 编译验证
 cmake --build build/
 
 # 7. 预览将要清理的注释行
-python iwyu_log_parser.py iwyu.log --clean-commented --dry-run
+python3 "$IWYU_PARSER" iwyu.log --clean-commented --dry-run
 
 # 8. 确认无误后清理注释行
-python iwyu_log_parser.py iwyu.log --clean-commented
+python3 "$IWYU_PARSER" iwyu.log --clean-commented
 
 # 9. 再次编译确认
 cmake --build build/
