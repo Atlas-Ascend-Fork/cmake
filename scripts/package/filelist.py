@@ -25,6 +25,7 @@ from utils.pkg_utils import (
     FilelistError,
     GenerateFilelistError,
     conditional_apply,
+    is_subdirectory,
     pairwise,
     swap_args,
     config_feature_to_string,
@@ -143,9 +144,9 @@ def get_soft_links_not_in_common_paths(
     filelist: FileList, target_env: str
 ) -> Iterator[List[str]]:
     for file_item_t in filelist:
-        if file_item_t.relative_install_path.startswith(target_env):
+        if is_subdirectory(target_env, file_item_t.relative_install_path):
             for softlink in file_item_t.softlink:
-                if not softlink.startswith(target_env):
+                if not is_subdirectory(target_env, softlink):
                     yield softlink
 
 
@@ -153,7 +154,7 @@ def fill_is_common_path(filelist: FileList, target_env: str) -> Iterator[FileIte
     """填充文件条目中是否为公共目录字段。"""
     soft_links = set(get_soft_links_not_in_common_paths(filelist, target_env))
     for file_item in filelist:
-        if file_item.relative_install_path.startswith(target_env):
+        if is_subdirectory(target_env, file_item.relative_install_path):
             yield file_item._replace(is_common_path="Y")
         else:
             is_soft_links_prefix = map(
@@ -433,14 +434,6 @@ def check_filelist(filelist: FileList, check_features: bool, check_move: bool):
         raise FilelistError()
 
 
-def get_common_path(args: List[str]) -> str:
-    """公共路径前缀。"""
-    try:
-        return os.path.commonpath(args)
-    except ValueError:
-        return ""
-
-
 class FileItemRelation(IntEnum):
     """文件条目之间的关系。"""
 
@@ -460,8 +453,7 @@ def is_nested_file_item(item: FileItem, base_item: FileItem) -> FileItemRelation
     install_path = item.relative_install_path
     base_install_path = base_item.relative_install_path
 
-    common_install_path = get_common_path([install_path, base_install_path])
-    if common_install_path != base_install_path:
+    if not is_subdirectory(base_install_path, install_path):
         return FileItemRelation.NOT_NESTED
 
     pkg_path = item.relative_path_in_pkg

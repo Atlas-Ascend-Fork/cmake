@@ -295,12 +295,6 @@ def test_print_helpers_and_move_safe_and_transform_funcs(tmp_path: Path):
     assert identity_func(test_list) is test_list
 
 
-def test_get_common_path_basic():
-    paths = ["/a/b/c", "/a/b/d"]
-    common = filelist.get_common_path(paths)
-    assert common in ("/a/b", "a\\b", "\\a\\b", "")
-
-
 def test_pkg_utils_basic_helpers_and_errors():
     assert list(pkg_utils.flatten([[1], [2, 3]])) == [1, 2, 3]
     merged = pkg_utils.merge_dict({"a": 1}, {"b": 2})
