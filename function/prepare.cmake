@@ -860,17 +860,21 @@ function(clone_cann_target)
     # 克隆头文件搜索路径
     if(NOT "INCLUDE_DIRECTORIES" IN_LIST ARG_IGNORE_PROP)
         get_target_property(includeDirs ${ARG_ORIGIN} INCLUDE_DIRECTORIES)
-        target_include_directories(${ARG_OUTPUT} PRIVATE
-            ${includeDirs}
-        )
+        if(includeDirs)
+            target_include_directories(${ARG_OUTPUT} PRIVATE
+                ${includeDirs}
+            )
+        endif()
     endif()
 
     # 克隆链接库
     if(NOT "LINK_LIBRARIES" IN_LIST ARG_IGNORE_PROP)
         get_target_property(linkLibs ${ARG_ORIGIN} LINK_LIBRARIES)
-        target_link_libraries(${ARG_OUTPUT} PRIVATE
-            ${linkLibs}
-        )
+        if(linkLibs)
+            target_link_libraries(${ARG_OUTPUT} PRIVATE
+                ${linkLibs}
+            )
+        endif()
     endif()
 
     # 克隆链接目录
