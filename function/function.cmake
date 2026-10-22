@@ -55,8 +55,11 @@ endfunction()
 # 加载配置
 macro(load_superbuild_config)
     include(${CANN_CMAKE_DIR}/superbuild/config.cmake)
-    if(CANN_SUPERBUILD_CONFIG AND EXISTS ${CANN_SUPERBUILD_CONFIG})
-        include(${CANN_SUPERBUILD_CONFIG})
+    if(NOT "${CANN_SUPERBUILD_CONFIG}" STREQUAL "")
+        if(NOT EXISTS "${CANN_SUPERBUILD_CONFIG}")
+            message(FATAL_ERROR "CANN_SUPERBUILD_CONFIG file not found: ${CANN_SUPERBUILD_CONFIG}")
+        endif()
+        include("${CANN_SUPERBUILD_CONFIG}")
     endif()
 endmacro()
 
