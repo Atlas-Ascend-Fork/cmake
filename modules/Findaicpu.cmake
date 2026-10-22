@@ -34,7 +34,6 @@ if(aicpu_FOUND)
         ${_CANN_AICPU_INCLUDE_DIR}
         ${_CANN_AICPU_INCLUDE_DIR}/aicpu_schedule
         ${_CANN_AICPU_INCLUDE_DIR}/common
-        ${_CANN_AICPU_INCLUDE_DIR}/cpu_kernels
         ${_CANN_AICPU_INCLUDE_DIR}/queue_schedule
         ${_CANN_AICPU_INCLUDE_DIR}/tsd
     )
