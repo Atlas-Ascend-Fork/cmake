@@ -43,6 +43,6 @@ if(ascendcl_FOUND)
 
     add_library(ascendcl_headers INTERFACE IMPORTED)
     set_target_properties(ascendcl_headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${_CANN_ASCENDCL_INCLUDE_DIR}/acl"
+        INTERFACE_INCLUDE_DIRECTORIES "${_CANN_ASCENDCL_INCLUDE_DIR};${_CANN_ASCENDCL_INCLUDE_DIR}/acl"
     )
 endif()
