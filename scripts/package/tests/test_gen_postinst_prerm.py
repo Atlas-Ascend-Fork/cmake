@@ -27,18 +27,30 @@ def _setup_main_env(tmp_path, monkeypatch, package_name="cann-test", modules_dat
     modules_file.write_text(json.dumps(modules_data))
     output_postinst = str(tmp_path / "postinst")
     output_prerm = str(tmp_path / "prerm")
-    monkeypatch.setattr("sys.argv", [
-        "gen_postinst_prerm.py",
-        "--package-name", package_name,
-        "--modules-file", str(modules_file),
-        "--output-postinst", output_postinst,
-        "--output-prerm", output_prerm,
-    ])
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "gen_postinst_prerm.py",
+            "--package-name",
+            package_name,
+            "--modules-file",
+            str(modules_file),
+            "--output-postinst",
+            output_postinst,
+            "--output-prerm",
+            output_prerm,
+            "--source_dir",
+            str(tmp_path),
+        ],
+    )
     return output_postinst, output_prerm
 
 
-def _mock_generate_funcs(monkeypatch, postinst_ret="#!/bin/bash\necho test\n",
-                         prerm_ret="#!/bin/bash\necho test\n"):
+def _mock_generate_funcs(
+    monkeypatch,
+    postinst_ret="#!/bin/bash\necho test\n",
+    prerm_ret="#!/bin/bash\necho test\n",
+):
     """Mock generate_postinst 和 generate_prerm 为返回固定字符串的函数"""
 
     def fake_postinst(*args, **kwargs):
@@ -92,10 +104,13 @@ class TestGenPostinstPrerm:
         assert result == ""
 
     @staticmethod
-    @pytest.mark.parametrize("path, expected", [
-        ("/absolute/path/file.so", '"/absolute/path/file.so"'),
-        ("relative/path/file.so", '"$INSTALL_PATH/relative/path/file.so"')
-    ])
+    @pytest.mark.parametrize(
+        "path, expected",
+        [
+            ("/absolute/path/file.so", '"/absolute/path/file.so"'),
+            ("relative/path/file.so", '"$INSTALL_PATH/relative/path/file.so"'),
+        ],
+    )
     def test_resolve_target(path, expected):
         """测试绝对路径与相对路径转换为 Bash 可用路径字符串的规则"""
         assert gen_postinst_prerm._resolve_target(path) == expected
@@ -117,7 +132,7 @@ class TestGenPostinstPrerm:
             version="9.0.0",
             modules_data=modules_data,
             source_dir=str(tmp_path),
-            permission_lines=permission_lines
+            permission_lines=permission_lines,
         )
 
         assert "#!/bin/bash" in result
@@ -132,10 +147,14 @@ class TestGenPostinstPrerm:
         modules_data = {
             "EngineeringCommon": [{"target": "ops/kernel", "link": "share/ops/kernel"}]
         }
-        result = gen_postinst_prerm.generate_postinst("cann-ops", "9.0.0", modules_data, str(tmp_path))
+        result = gen_postinst_prerm.generate_postinst(
+            "cann-ops", "9.0.0", modules_data, str(tmp_path)
+        )
 
-        assert ('if [ "EngineeringCommon" = "EngineeringCommon" '
-                '-o "EngineeringCommon" = "DevlibCommon" ]; then') in result
+        assert (
+            'if [ "EngineeringCommon" = "EngineeringCommon" '
+            '-o "EngineeringCommon" = "DevlibCommon" ]; then'
+        ) in result
         assert 'mkdir -p "$INSTALL_PATH"/ops/kernel' in result
 
     @staticmethod
@@ -144,20 +163,29 @@ class TestGenPostinstPrerm:
         modules_data = {
             "DevlibCommon": [{"target": "include/dev.h", "link": "link/dev.h"}]
         }
-        result = gen_postinst_prerm.generate_postinst("cann-dev", "9.0.0", modules_data, str(tmp_path))
+        result = gen_postinst_prerm.generate_postinst(
+            "cann-dev", "9.0.0", modules_data, str(tmp_path)
+        )
 
         assert "# Update database for module DevlibCommon" in result
-        assert 'grep -q \'^DevlibCommon|\' "$DB_FILE"' in result
-        assert 'sed -i "s/^DevlibCommon|.*$/DevlibCommon|$new_components/" "$DB_FILE"' in result
+        assert "grep -q '^DevlibCommon|' \"$DB_FILE\"" in result
+        assert (
+            'sed -i "s/^DevlibCommon|.*$/DevlibCommon|$new_components/" "$DB_FILE"'
+            in result
+        )
 
     @staticmethod
     def test_generate_postinst_with_custom_hook(tmp_path):
         """测试外部自定义后置脚本存在时，能够正确插桩读取"""
         custom_dir = tmp_path / "scripts" / "package" / "cann-hook" / "rpm_deb"
         custom_dir.mkdir(parents=True)
-        (custom_dir / "custom_postinst.sh").write_text("echo 'CUSTOM_POST_HOOK_TRIGGERED'")
+        (custom_dir / "custom_postinst.sh").write_text(
+            "echo 'CUSTOM_POST_HOOK_TRIGGERED'"
+        )
 
-        result = gen_postinst_prerm.generate_postinst("cann-hook", "9.0.0", {}, str(tmp_path))
+        result = gen_postinst_prerm.generate_postinst(
+            "cann-hook", "9.0.0", {}, str(tmp_path)
+        )
         assert "echo 'CUSTOM_POST_HOOK_TRIGGERED'" in result
         assert result.endswith("exit 0")
 
@@ -171,27 +199,39 @@ class TestGenPostinstPrerm:
         modules_data = {
             "NormalModule": [{"target": "lib/liba.so", "link": "lib/link_a.so"}]
         }
-        result = gen_postinst_prerm.generate_prerm("cann-normal", "9.0.0", modules_data, str(tmp_path))
+        result = gen_postinst_prerm.generate_prerm(
+            "cann-normal", "9.0.0", modules_data, str(tmp_path)
+        )
 
         assert "# Non-tracked module: directly remove symlinks" in result
         assert 'if [ -L "$INSTALL_PATH"/"lib/link_a.so" ]; then' in result
         assert 'rm -f "$INSTALL_PATH"/"lib/link_a.so"' in result
-        assert 'cleanup_parent_dirs "$INSTALL_PATH"/"lib/link_a.so" "$INSTALL_PATH"' in result
-    
+        assert (
+            'cleanup_parent_dirs "$INSTALL_PATH"/"lib/link_a.so" "$INSTALL_PATH"'
+            in result
+        )
+
     @staticmethod
     def test_generate_prerm_special_module_lifecycle(tmp_path):
         """测试特殊模块卸载：联动组件清单数据库，计算剥离当前组件并按需执行 rm/sed"""
         modules_data = {
             "EngineeringCommon": [{"target": "ops/bin", "link": "share/bin"}]
         }
-        result = gen_postinst_prerm.generate_prerm("cann-eng", "9.0.0", modules_data, str(tmp_path))
+        result = gen_postinst_prerm.generate_prerm(
+            "cann-eng", "9.0.0", modules_data, str(tmp_path)
+        )
 
-        assert 'if [ -f "$DB_FILE" ] && grep -q \'^EngineeringCommon|\' "$DB_FILE"; then' in result
-        new_cmd = ("new_components=$(echo \"$components\" | tr ',' '\\n' "
-                   "| grep -v \"^$PACKAGE_NAME$\" | paste -sd ',' -)")
+        assert (
+            'if [ -f "$DB_FILE" ] && grep -q \'^EngineeringCommon|\' "$DB_FILE"; then'
+            in result
+        )
+        new_cmd = (
+            "new_components=$(echo \"$components\" | tr ',' '\\n' "
+            "| grep -v \"^$PACKAGE_NAME$\" | paste -sd ',' -)"
+        )
         assert new_cmd in result
         assert 'rm -rf "$INSTALL_PATH"/"ops/bin"' in result
-        assert 'sed -i \'/^EngineeringCommon|/d\' "$DB_FILE"' in result
+        assert "sed -i '/^EngineeringCommon|/d' \"$DB_FILE\"" in result
         assert "cleanup_db_and_var" in result
 
     @staticmethod
@@ -201,9 +241,10 @@ class TestGenPostinstPrerm:
         custom_dir.mkdir(parents=True)
         (custom_dir / "custom_prerm.sh").write_text("echo 'CUSTOM_PRE_HOOK_TRIGGERED'")
 
-        result = gen_postinst_prerm.generate_prerm("cann-hook", "9.0.0", {}, str(tmp_path))
+        result = gen_postinst_prerm.generate_prerm(
+            "cann-hook", "9.0.0", {}, str(tmp_path)
+        )
         assert "echo 'CUSTOM_PRE_HOOK_TRIGGERED'" in result
-
 
     # ==========================================
     # 4. generate_set_permission 赋权逻辑测试
@@ -212,17 +253,18 @@ class TestGenPostinstPrerm:
     @staticmethod
     def test_generate_set_permission_skips_and_dedup():
         """测试权限列表解析：对 NA、缺失项进行安全拦截，并实现 (path, mod) 重复去重"""
+
         class MockItem:
             def __init__(self, path, perm):
                 self.relative_install_path = path
                 self.permission = perm
 
         items = [
-            MockItem("NA", "755"),         # 路径无效
-            MockItem("bin/app1", "NA"),    # 权限无效
-            MockItem("bin/app2", None),    # 权限缺失
-            MockItem("lib/liba.so", "644"), # 正常条目
-            MockItem("lib/liba.so", "644"), # 重复条目（去重）
+            MockItem("NA", "755"),  # 路径无效
+            MockItem("bin/app1", "NA"),  # 权限无效
+            MockItem("bin/app2", None),  # 权限缺失
+            MockItem("lib/liba.so", "644"),  # 正常条目
+            MockItem("lib/liba.so", "644"),  # 重复条目（去重）
         ]
 
         result = gen_postinst_prerm.generate_set_permission(items, "9.0.0")
@@ -235,6 +277,7 @@ class TestGenPostinstPrerm:
     @staticmethod
     def test_generate_set_permission_root_elevation():
         """安全基线测试：验证 root (EUID=0) 提权矩阵（550->555, 440->444, 750->755）的 case 转换"""
+
         class MockItem:
             def __init__(self, path, perm):
                 self.relative_install_path = path
@@ -244,7 +287,7 @@ class TestGenPostinstPrerm:
             MockItem("file_550", "550"),
             MockItem("file_440", "440"),
             MockItem("file_750", "750"),
-            MockItem("file_700", "700")
+            MockItem("file_700", "700"),
         ]
 
         result = gen_postinst_prerm.generate_set_permission(items, "9.0.0")
@@ -259,6 +302,7 @@ class TestGenPostinstPrerm:
     @staticmethod
     def test_generate_set_permission_script_path_matching():
         """测试内联路径判定：通过 items 中包含的 script 路径触发特定的脚本赋权生成"""
+
         class MockItem:
             def __init__(self, path, perm):
                 self.relative_install_path = path
@@ -270,12 +314,13 @@ class TestGenPostinstPrerm:
         result = gen_postinst_prerm.generate_set_permission(items, "9.0.0")
         result_str = "\n".join(result)
 
-        assert 'share/info/hccl/script' in result_str
+        assert "share/info/hccl/script" in result_str
         assert 'if [ -e "$INSTALL_PATH/share/info/hccl/script" ]; then' in result_str
 
     @staticmethod
     def test_generate_set_permission_with_script_dir():
         """测试 script_dir 参数: 生成统一刷权限的 find 命令"""
+
         class MockItem:
             def __init__(self, path, perm):
                 self.relative_install_path = path
@@ -289,10 +334,14 @@ class TestGenPostinstPrerm:
         result_str = "\n".join(result)
 
         assert 'if [ -d "$INSTALL_PATH/share/info/runtime/script" ]; then' in result_str
-        find_cmd_555 = ('find "$INSTALL_PATH/share/info/runtime/script" '
-                        '-type f -exec chmod 555 {} \\; 2>/dev/null || true')
-        find_cmd_550 = ('find "$INSTALL_PATH/share/info/runtime/script" '
-                        '-type f -exec chmod 550 {} \\; 2>/dev/null || true')
+        find_cmd_555 = (
+            'find "$INSTALL_PATH/share/info/runtime/script" '
+            "-type f -exec chmod 555 {} \\; 2>/dev/null || true"
+        )
+        find_cmd_550 = (
+            'find "$INSTALL_PATH/share/info/runtime/script" '
+            "-type f -exec chmod 550 {} \\; 2>/dev/null || true"
+        )
         assert find_cmd_555 in result_str
         assert find_cmd_550 in result_str
 
@@ -311,16 +360,25 @@ class TestGenPostinstPrermMain:
     """针对 gen_postinst_prerm.main() 入口函数的测试"""
 
     @staticmethod
-    def test_main_missing_source_dir_raises(tmp_path, monkeypatch):
-        """测试 main() 因 generate_postinst 缺少 source_dir 参数而抛 TypeError (已知问题)"""
+    def test_main_passes_source_dir(tmp_path, monkeypatch):
+        """测试 main() 将 --source_dir 透传给生成函数并用于定位自定义钩子（修复缺参 TypeError）"""
         modules_data = {
             "NormalModule": [{"target": "lib/liba.so", "link": "lib64/liba.so"}]
         }
-        _setup_main_env(
-            tmp_path, monkeypatch, package_name="cann-runtime", modules_data=modules_data
+        output_postinst, output_prerm = _setup_main_env(
+            tmp_path,
+            monkeypatch,
+            package_name="cann-runtime",
+            modules_data=modules_data,
         )
-        with pytest.raises(TypeError, match="source_dir"):
-            gen_postinst_prerm.main()
+        # 在 source_dir 下放置自定义钩子，验证 main() 的 --source_dir 真正参与生成
+        custom_dir = tmp_path / "scripts" / "package" / "cann-runtime" / "rpm_deb"
+        custom_dir.mkdir(parents=True)
+        (custom_dir / "custom_postinst.sh").write_text(
+            "echo 'SOURCE_DIR_HOOK_TRIGGERED'"
+        )
+        gen_postinst_prerm.main()
+        assert "echo 'SOURCE_DIR_HOOK_TRIGGERED'" in open(output_postinst).read()
 
     @staticmethod
     def test_main_commlog_imported(tmp_path, monkeypatch):
@@ -338,18 +396,20 @@ class TestGenPostinstPrermMain:
         captured_args = {}
 
         def fake_generate_postinst(package_name, version, modules_data, **kwargs):
-            captured_args['version'] = version
+            captured_args["version"] = version
             return "#!/bin/bash\necho test\n"
 
         def fake_generate_prerm(package_name, version, modules_data, **kwargs):
-            captured_args['prerm_version'] = version
+            captured_args["prerm_version"] = version
             return "#!/bin/bash\necho test\n"
 
-        monkeypatch.setattr(gen_postinst_prerm, "generate_postinst", fake_generate_postinst)
+        monkeypatch.setattr(
+            gen_postinst_prerm, "generate_postinst", fake_generate_postinst
+        )
         monkeypatch.setattr(gen_postinst_prerm, "generate_prerm", fake_generate_prerm)
         gen_postinst_prerm.main()
-        assert captured_args['version'] == "9.0.0"
-        assert captured_args['prerm_version'] == "9.0.0"
+        assert captured_args["version"] == "9.0.0"
+        assert captured_args["prerm_version"] == "9.0.0"
 
     @staticmethod
     def test_main_writes_output_files(tmp_path, monkeypatch):
@@ -380,16 +440,21 @@ class TestGenPostinstPrermMain:
         captured = {}
 
         def fake_generate_postinst(package_name, version, modules_data, **kwargs):
-            captured['package_name'] = package_name
-            captured['modules_data'] = modules_data
+            captured["package_name"] = package_name
+            captured["modules_data"] = modules_data
             return "#!/bin/bash\necho test\n"
 
-        monkeypatch.setattr(gen_postinst_prerm, "generate_postinst", fake_generate_postinst)
-        monkeypatch.setattr(gen_postinst_prerm, "generate_prerm",
-                            lambda *a, **k: "#!/bin/bash\necho test\n")
+        monkeypatch.setattr(
+            gen_postinst_prerm, "generate_postinst", fake_generate_postinst
+        )
+        monkeypatch.setattr(
+            gen_postinst_prerm,
+            "generate_prerm",
+            lambda *a, **k: "#!/bin/bash\necho test\n",
+        )
         gen_postinst_prerm.main()
-        assert captured['package_name'] == "cann-ops"
-        assert captured['modules_data'] == modules_data
+        assert captured["package_name"] == "cann-ops"
+        assert captured["modules_data"] == modules_data
 
     @staticmethod
     def test_main_argparse_required_args(tmp_path, monkeypatch):
