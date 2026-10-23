@@ -212,6 +212,8 @@ python3 community_sign_build.py [options] <file1> [file2 ...]
 | `--print-sign-ext` | 打印签名产物扩展名（`.p7s`）并退出，不执行签名 |
 | `--print-certtype` | 打印证书类型（`0x1`）并退出，不执行签名 |
 
+`CRL_FILE_PATH` 和 `--crl-dir` 支持相对于调用目录的路径；传给签名客户端前，CRL 路径会转为绝对路径，避免客户端工作目录变化后找不到文件。
+
 返回码：`0` 成功，`1` 失败。
 
 ## 示例工作流

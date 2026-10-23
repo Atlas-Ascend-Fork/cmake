@@ -174,7 +174,8 @@ def get_sign_cmd(input_file: str, crl_path: str) -> List[str]:
         "--timestamp-key",
         "TimeCert",
         "--crl",
-        crl_path,
+        # sign_single_file 会切换 cwd，CRL 应按调用方目录解析。
+        os.path.abspath(crl_path),
     ]
 
 
