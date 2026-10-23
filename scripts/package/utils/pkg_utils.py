@@ -209,3 +209,13 @@ def is_subdirectory(base: str, sub: str) -> bool:
         return os.path.commonpath([base, sub]) == base
     except ValueError:
         return False
+
+
+def get_path_without_ext(path: str) -> str:
+    """获取路径的除扩展名部分。"""
+    return os.path.splitext(path)[0]
+
+
+def get_path_ext(path: str) -> str:
+    """获取路径的扩展名。"""
+    return os.path.splitext(path)[1]

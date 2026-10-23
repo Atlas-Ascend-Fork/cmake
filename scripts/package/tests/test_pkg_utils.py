@@ -12,7 +12,7 @@
 
 import pytest
 
-from package.utils.pkg_utils import is_subdirectory
+from package.utils.pkg_utils import get_path_ext, get_path_without_ext, is_subdirectory
 
 
 @pytest.mark.parametrize(
@@ -55,3 +55,73 @@ def test_is_subdirectory(test_item):
     sub = test_item["sub"]
     expected = test_item["expected"]
     assert is_subdirectory(base, sub) == expected
+
+
+@pytest.mark.parametrize(
+    "test_item",
+    [
+        {
+            "path": "a.run",
+            "expected": "a",
+        },
+        {
+            "path": ".run",
+            "expected": ".run",
+        },
+        {
+            "path": "..run",
+            "expected": "..run",
+        },
+        {
+            "path": "...run",
+            "expected": "...run",
+        },
+        {
+            "path": "a...run",
+            "expected": "a..",
+        },
+        {
+            "path": "b.txt",
+            "expected": "b",
+        },
+    ],
+)
+def test_get_path_without_ext(test_item):
+    path = test_item["path"]
+    expected = test_item["expected"]
+    assert expected == get_path_without_ext(path)
+
+
+@pytest.mark.parametrize(
+    "test_item",
+    [
+        {
+            "path": "a.run",
+            "expected": ".run",
+        },
+        {
+            "path": ".run",
+            "expected": "",
+        },
+        {
+            "path": "..run",
+            "expected": "",
+        },
+        {
+            "path": "...run",
+            "expected": "",
+        },
+        {
+            "path": "a...run",
+            "expected": ".run",
+        },
+        {
+            "path": "b.txt",
+            "expected": ".txt",
+        },
+    ],
+)
+def test_get_path_ext(test_item):
+    path = test_item["path"]
+    expected = test_item["expected"]
+    assert expected == get_path_ext(path)

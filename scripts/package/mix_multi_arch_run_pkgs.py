@@ -36,7 +36,7 @@ from filelist import (
 )
 from packer import create_makeself_pkg_params_factory, create_run_package_command
 from utils.comm_log import CommLog
-from utils.pkg_utils import PackageError
+from utils.pkg_utils import PackageError, get_path_ext, get_path_without_ext
 
 RUN_SUFFIX = ".run"
 
@@ -72,7 +72,7 @@ class Prepare:
     def __init__(self, filepath: str, logger: Logger):
         self.filepath = filepath
         self.logger = logger
-        self.extract_path = filepath[: -len(RUN_SUFFIX)]
+        self.extract_path = get_path_without_ext(filepath)
 
     def decompress_run(self):
         """解压run包。"""
@@ -136,7 +136,7 @@ class Mix:
         self.makeself_dir = makeself_dir
 
         filename = os.path.basename(self.filepath)
-        self.filename_new = f"{filename[: -len(RUN_SUFFIX)]}.mixed.run"
+        self.filename_new = f"{get_path_without_ext(filename)}.mixed.run"
         self.filepath_new = os.path.join(self.dirpath, self.filename_new)
         self.label = filename_to_label(filename)
 
@@ -326,6 +326,20 @@ class MixCommand:
 
         return ret
 
+    def _check_args_pkgs(self) -> bool:
+        """检查pkgs参数。"""
+        ret = True
+        for pkg in self.args.pkgs:
+            if not os.path.exists(pkg):
+                self.logger.error(f"Package {pkg} doesn't exist!")
+                ret = False
+            if get_path_ext(pkg) != RUN_SUFFIX:
+                self.logger.error(
+                    f"Package {pkg} needs to be a run package(with extension {RUN_SUFFIX})!"
+                )
+                ret = False
+        return ret
+
     def check_args(self) -> bool:
         """检查参数。"""
         ret = True
@@ -337,15 +351,7 @@ class MixCommand:
             )
             ret = False
 
-        for pkg in self.args.pkgs:
-            if not os.path.exists(pkg):
-                self.logger.error(f"Package {pkg} doesn't exist!")
-                ret = False
-            if not pkg.endswith(RUN_SUFFIX):
-                self.logger.error(
-                    f"Package {pkg} needs to be a run package(end with {RUN_SUFFIX})!"
-                )
-                ret = False
+        ret &= self._check_args_pkgs()
 
         if self.args.arch:
             for arch in self.args.arch:
