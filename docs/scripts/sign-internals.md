@@ -399,7 +399,7 @@ CMake 公共 API `add_cann_sign_file` 创建一个自定义命令和目标：
 
 1. **输入归一化**：相对路径的 `INPUT` 解析为 `${CMAKE_CURRENT_BINARY_DIR}` 下的绝对路径。
 2. **输出路径**：自动生成 `${CMAKE_CURRENT_BINARY_DIR}/signatures_${safe_input_name}/<input_name>`（每目标独立目录）。
-3. **脚本选择**：`CUSTOM_SIGN_SCRIPT` 变量覆盖默认签名脚本，默认为 `community_sign_build.py`；`.py` 和 `.sh` 分支均使用 `${SIGN_SCRIPT}`。
+3. **脚本选择**：`CUSTOM_SIGN_SCRIPT` 变量覆盖默认签名脚本，默认为 `community_sign_build.py`。
 4. **签名标志**：`ENABLE_SIGN` 变量转换为 `"true"`/`"false"` 字符串。
 5. **脚本分发**：按脚本扩展名分发——`.py` 走完整编排流程，`.sh` 直接执行。
 6. **自定义命令**：`make_directory → copy → sign_cmd` 三步，`VERBATIM` 保证参数安全传递。

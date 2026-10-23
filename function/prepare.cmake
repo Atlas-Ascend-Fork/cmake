@@ -1077,12 +1077,12 @@ function(add_cann_sign_file)
         ARG
         ""
         "OUTPUT_TARGET;INPUT;CONFIG;RESULT_VAR;VERSION"
-        "SCRIPT_ARGS;DEPENDS"
+        "DEPENDS"
         ${ARGN}
     )
 
     # --- Validation ---
-    if(DEFINED CUSTOM_SIGN_SCRIPT AND NOT CUSTOM_SIGN_SCRIPT STREQUAL "")
+    if(CUSTOM_SIGN_SCRIPT)
         set(SIGN_SCRIPT ${CUSTOM_SIGN_SCRIPT})
     else()
         set(SIGN_SCRIPT ${CANN_CMAKE_DIR}/scripts/sign/community_sign_build.py)
@@ -1115,16 +1115,8 @@ function(add_cann_sign_file)
     set(output_sig "${signatures_dir}/${input_name}")
 
     if(EXISTS "${SIGN_SCRIPT}")
-        get_filename_component(EXT ${SIGN_SCRIPT} EXT) # 获取文件扩展名
-
-        if (${EXT} STREQUAL ".sh")
-            set(sign_cmd bash ${SIGN_SCRIPT} ${output_sig} ${ARG_CONFIG} ${sign_flag})
-        elseif(${EXT} STREQUAL ".py")
-            set(add_header ${CANN_CMAKE_DIR}/scripts/sign/add_header_sign.py)
-            set(sign_builder ${SIGN_SCRIPT})
-            message(STATUS "Detected +++sign version:${ARG_VERSION}, CANN_CMAKE_DIR:${CANN_CMAKE_DIR}")
-            set(sign_cmd python3 ${add_header} ${signatures_dir} ${sign_flag} --bios_check_cfg=${ARG_CONFIG} --sign_script=${sign_builder} --version=${ARG_VERSION})
-        endif()
+        set(add_header ${CANN_CMAKE_DIR}/scripts/sign/add_header_sign.py)
+        set(sign_cmd python3 ${add_header} ${signatures_dir} ${sign_flag} --bios_check_cfg=${ARG_CONFIG} --sign_script=${SIGN_SCRIPT} --version=${ARG_VERSION})
     else()
         set(sign_cmd )
     endif()

@@ -190,7 +190,6 @@ clone_cann_target(ORIGIN ccl_kernel OUTPUT aicpu_custom IGNORE_PROP LINK_LIBRARI
 | `CONFIG` | 签名配置文件（必选） |
 | `RESULT_VAR` | 接收签名后文件路径的变量（必选） |
 | `OUTPUT_TARGET` | 自定义目标名 |
-| `SCRIPT_ARGS` | 签名脚本额外参数 |
 | `DEPENDS` | 额外依赖 |
 | `VERSION` | 版本号（必选） |
 

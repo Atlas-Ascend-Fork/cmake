@@ -108,7 +108,6 @@ python3 scripts/sign/add_header_sign.py /path/to/images true \
 | 脚本类型 | 自定义方式 | 调用方式 |
 |----------|-----------|----------|
 | `.py` | `CUSTOM_SIGN_SCRIPT` 变量或 `--sign_script` 参数 | `python3 add_header_sign.py <dir> <flag> --bios_check_cfg=<cfg> --sign_script=<自定义脚本> --version=<ver>` |
-| `.sh` | `build.sh --sign-script` 或 `CUSTOM_SIGN_SCRIPT` | `bash <自定义脚本> <output_sig> <config> <sign_flag>` |
 
 #### `.py` 自定义签名脚本契约
 
