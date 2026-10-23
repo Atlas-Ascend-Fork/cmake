@@ -48,7 +48,7 @@ usage() {
   echo "    --build-type=<TYPE>"
   echo "                   Specify build type (TYPE options: Release/Debug), Default: Release"
   echo "    --pkg-type=<TYPE>"
-  echo "                   Specify pkg type （TYPE options: run/rpm/deb, Default: run"
+  echo "                   Specify pkg type (TYPE options: run/rpm/deb/deb,rpm/all, Default: run )"
   echo "    --asan         Enable AddressSanitizer"
   echo "    --cov          Enable Coverage"
   echo "    --sign-script <PATH>"
@@ -237,7 +237,7 @@ checkopts() {
 
   case "$PACKAGE_TYPE" in
     run|rpm|deb|deb,rpm|all) ;;
-    *) echo "error: invalid --pkg-type '$PACKAGE_TYPE', must be run, rpm, deb, deb,rpm or all."; exit 1 ;;
+    *) echo "error: invalid --pkg-type '$PACKAGE_TYPE', must be run/rpm/deb/deb,rpm/all."; exit 1 ;;
   esac
 
   set_env

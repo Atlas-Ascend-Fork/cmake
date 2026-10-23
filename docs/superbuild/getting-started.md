@@ -68,6 +68,12 @@ bash build.sh --pkgs=runtime,asc-devkit -j16 -v
 # 构建 rpm 包
 bash build.sh --pkgs=runtime --pkg-type=rpm
 
+# 同时构建 deb 和 rpm 包
+bash build.sh --pkgs=runtime --pkg-type=deb,rpm
+
+# 同时构建 run、deb 和 rpm 包
+bash build.sh --pkgs=runtime --pkg-type=all
+
 # Debug 构建
 bash build.sh --pkgs=runtime --build-type=Debug
 
@@ -83,7 +89,7 @@ bash build.sh --pkgs=runtime --build_host_only
 | `-j<N>` | 编译线程数 | CPU 核数 |
 | `-v` / `--verbose` | 显示完整编译命令 | 关闭 |
 | `--build-type=<TYPE>` | 构建类型：`Release` / `Debug` | `Release` |
-| `--pkg-type=<TYPE>` | 包类型：`run` / `rpm` / `deb` | `run` |
+| `--pkg-type=<TYPE>` | 包类型：`run` / `rpm` / `deb` / `deb,rpm` / `all` | `run` |
 | `--build_host_only` | 仅构建 host 侧，跳过 device 交叉编译 | 关闭 |
 | `--asan` | 启用 AddressSanitizer | 关闭 |
 | `--cov` | 启用代码覆盖率 | 关闭 |
