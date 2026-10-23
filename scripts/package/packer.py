@@ -298,7 +298,7 @@ def run_complex_cmd(cmd_str):
 def exec_pack_cmd(delivery_dir: str, pack_cmd: str, package_name: str) -> str:
     """执行打包命令"""
     if delivery_dir:
-        cmd = f"cd {delivery_dir} && {pack_cmd}"
+        cmd = f"cd {shlex.quote(delivery_dir)} && {pack_cmd}"
     else:
         cmd = pack_cmd
     CommLog.cilog_info("package cmd:%s", cmd)
