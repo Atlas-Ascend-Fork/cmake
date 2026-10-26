@@ -323,13 +323,13 @@ device 侧通过 `get_package_dirs` 的第三个参数 `"cmake/device"` 指定�
 ## 5. host/device 构建关系
 
 ```
-build.sh --pkgs=runtime
+build.sh --pkgs=npu-runtime
     │
     ▼
 cmake -S superbuild -B build         ← host 侧配置
     │
     ├── init_cann_superbuild_project(PRODUCT_SIDE "host")
-    ├── get_pkg_dependencies("runtime") → CANN_DEPEND_PACKAGES
+    ├── get_pkg_dependencies("npu-runtime") → CANN_DEPEND_PACKAGES
     ├── calc_device_packages() → DEVICE_CANN_PACKAGES
     ├── add_subdirectory(${CANN_TOP_DIR}/runtime)   ← 引入 runtime 源码
     ├── set_cann_all_targets(...)                   ← 设置精确构建目标
@@ -431,7 +431,7 @@ cmake --build build --target package   ← 编译并打包
 查看完整的 cmake 配置命令：
 
 ```bash
-bash build.sh --pkgs=runtime -v
+bash build.sh --pkgs=npu-runtime -v
 ```
 
 查看生成的构建系统：
@@ -450,7 +450,7 @@ cmake --build build --target help | grep cann
 ### 8.4 使用自定义 superbuild 配置
 
 ```bash
-bash build.sh --pkgs=runtime --superbuild-config=/path/to/custom_config.cmake
+bash build.sh --pkgs=npu-runtime --superbuild-config=/path/to/custom_config.cmake
 ```
 
 自定义配置文件在 `config.cmake` 之后加载，可覆盖包映射或添加新定义。

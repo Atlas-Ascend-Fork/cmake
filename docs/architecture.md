@@ -104,10 +104,10 @@ CANN 组件分为主机侧（host）和设备侧（device）两部分，构建�
 
 ### 依赖解析
 
-`build.sh --pkgs=runtime,asc-devkit` 指定要构建的包。框架通过递归解析各包 `version.cmake` 中的构建依赖声明，自动拉入所有依赖包：
+`build.sh --pkgs=npu-runtime,asc-devkit` 指定要构建的包。框架通过递归解析各包 `version.cmake` 中的构建依赖声明，自动拉入所有依赖包：
 
 ```
-get_pkg_dependencies("runtime")
+get_pkg_dependencies("npu-runtime")
   → 读取 ${CANN_TOP_DIR}/runtime/version.cmake
   → 获取该包的构建依赖列表
   → 对每个依赖包递归解析

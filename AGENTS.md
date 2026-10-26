@@ -9,7 +9,7 @@ Shared CMake/Python build, packaging, and install framework for the CANN ecosyst
 ## Build
 
 ```bash
-# --pkgs is REQUIRED. Comma-separated package names (e.g. runtime,asc-devkit).
+# --pkgs is REQUIRED. Comma-separated package names (e.g. npu-runtime,asc-devkit).
 bash build.sh --pkgs=<PACKAGES> [-j<N>] [-v] [--pkg-type=run|rpm|deb|deb,rpm|all] [--build-type=Release|Debug] [--build_host_only] [--asan]
 ```
 

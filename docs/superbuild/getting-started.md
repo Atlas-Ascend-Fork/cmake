@@ -60,25 +60,25 @@ bash build.sh --pkgs=<PACKAGES> [-j<N>] [-v] [--pkg-type=run|rpm|deb] [--build-t
 
 ```bash
 # 构建 runtime 包
-bash build.sh --pkgs=runtime
+bash build.sh --pkgs=npu-runtime
 
 # 构建 runtime 和 asc-devkit，16 线程，verbose 输出
-bash build.sh --pkgs=runtime,asc-devkit -j16 -v
+bash build.sh --pkgs=npu-runtime,asc-devkit -j16 -v
 
 # 构建 rpm 包
-bash build.sh --pkgs=runtime --pkg-type=rpm
+bash build.sh --pkgs=npu-runtime --pkg-type=rpm
 
 # 同时构建 deb 和 rpm 包
-bash build.sh --pkgs=runtime --pkg-type=deb,rpm
+bash build.sh --pkgs=npu-runtime --pkg-type=deb,rpm
 
 # 同时构建 run、deb 和 rpm 包
-bash build.sh --pkgs=runtime --pkg-type=all
+bash build.sh --pkgs=npu-runtime --pkg-type=all
 
 # Debug 构建
-bash build.sh --pkgs=runtime --build-type=Debug
+bash build.sh --pkgs=npu-runtime --build-type=Debug
 
 # 仅构建 host 侧，跳过 device 交叉编译
-bash build.sh --pkgs=runtime --build_host_only
+bash build.sh --pkgs=npu-runtime --build_host_only
 ```
 
 ### 参数说明
@@ -139,7 +139,7 @@ bash build.sh --pkgs=runtime --build_host_only
 内置 `toolchain/aarch64-hcc-toolchain.cmake` 用于 hcc 交叉编译 device 侧。如需使用 clang/LLVM 工具链，可指定 `--device-toolchain` 指向 `toolchain/aarch64-clang-toolchain.cmake`：
 
 ```bash
-bash build.sh --pkgs=runtime \
+bash build.sh --pkgs=npu-runtime \
   --device-toolchain=cmake/toolchain/aarch64-clang-toolchain.cmake \
   --device-toolchain-dir=/usr/lib/llvm-15
 ```

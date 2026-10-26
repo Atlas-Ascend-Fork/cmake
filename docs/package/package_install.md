@@ -122,16 +122,16 @@ bash build.sh --pkgs=<包名>
 
 ```bash
 # 指定包类型
-bash build.sh --pkgs=runtime --pkg-type=rpm
+bash build.sh --pkgs=npu-runtime --pkg-type=rpm
 
 # 同时打出 deb 和 rpm
-bash build.sh --pkgs=runtime --pkg-type=deb,rpm
+bash build.sh --pkgs=npu-runtime --pkg-type=deb,rpm
 
 # 打出全部类型（run + deb + rpm）
-bash build.sh --pkgs=runtime --pkg-type=all
+bash build.sh --pkgs=npu-runtime --pkg-type=all
 
 # 多包联合打包，指定线程数与详细输出
-bash build.sh --pkgs=runtime,asc-devkit -j16 -v
+bash build.sh --pkgs=npu-runtime,asc-devkit -j16 -v
 ```
 
 > `--pkgs` 为**必选**参数，多个包名用逗号分隔。可用的包名见 [附录 B](#附录-b可打包的包名)，完整参数表（`-j`、`--build-type`、`--build_host_only`、`--cann_path`、工具链等）见 `getting-started.md`。
@@ -415,7 +415,7 @@ sudo apt remove cann-runtime
 cd /path/to/CANN_TOP_DIR/cmake
 
 # 打 runtime 的 .run 包（默认 Release、默认 run 类型）
-bash build.sh --pkgs=runtime -v
+bash build.sh --pkgs=npu-runtime -v
 
 # 产物位于
 ls build_out/
@@ -457,7 +457,7 @@ sudo /usr/local/Ascend/cann_uninstall.sh
 
 ```bash
 # 构建机：打 deb 包
-bash build.sh --pkgs=runtime --pkg-type=deb
+bash build.sh --pkgs=npu-runtime --pkg-type=deb
 ls build_out/   # cann-runtime_9.1.0_linux-x86_64.deb
 
 # 目标机：用 apt 安装（自动解决依赖）
@@ -474,7 +474,7 @@ sudo apt remove cann-runtime
 ### 打包相关
 
 **Q1：执行 `build.sh` 报 `error: --pkgs option is required`**
-A：`--pkgs` 是必选参数，需指定要打包的组件名，如 `--pkgs=runtime`（`build.sh:216-219`）。
+A：`--pkgs` 是必选参数，需指定要打包的组件名，如 `--pkgs=npu-runtime`（`build.sh:216-219`）。
 
 **Q2：报 `error: invalid --pkg-type 'xxx'`**
 A：包类型必须是 `run`/`rpm`/`deb`/`deb,rpm`/`all` 之一（`build.sh:226-229`）。注意 `deb,rpm` 之间是逗号无空格。
