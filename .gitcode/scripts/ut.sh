@@ -48,7 +48,7 @@ DP_ASSERT_EQUAL()
 }
 
 LOG_HEAD "Start run c++ testcase"
-cd ${WORKSPACE}/ || exit 1
+cd -- "${WORKSPACE}" || exit 1
 LOG_DO python -m coverage run -m pytest scripts
 DP_ASSERT_EQUAL "$?" "0" "Run UT TESTCASE"
 

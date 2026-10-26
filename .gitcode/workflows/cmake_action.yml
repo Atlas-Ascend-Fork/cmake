@@ -91,8 +91,8 @@ stages:
             name: ut_acc
             identifier: ut
             run: |
-              export WORKSPACE=${{ steps.process_checkout.outputs.path }}
-              cd ${{ steps.process_checkout.outputs.path }}
+              export WORKSPACE="${{ steps.process_checkout.outputs.path }}"
+              cd -- "${WORKSPACE}"
               export GIT_TARGET_BRANCH=${{ env.TARGET_BRANCH }}
               bash ut.sh
           -
