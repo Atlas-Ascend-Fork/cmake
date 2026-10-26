@@ -142,3 +142,10 @@ set_target_properties(GTest::gmock PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
     IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib/libgmock.a
 )
+
+add_library(GTest::gmock_main STATIC IMPORTED GLOBAL)
+add_dependencies(GTest::gmock_main third_party_gtest)
+set_target_properties(GTest::gmock_main PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
+    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib/libgmock_main.a
+)
