@@ -9,18 +9,21 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Purpose:
 # Copyright Huawei Technologies Co., Ltd. 2010-2022. All rights reserved.
 # Author: fanwenyue
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 import xml.etree.ElementTree as ET
 import hashlib
 import argparse
 import textwrap
 import os
+import sys
 
+
+# fmt: off
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -129,10 +132,11 @@ def update_hash():
 def main():
     args = get_args()
     if args.new_image_name:
-        update_hash()
+        return update_hash()
     else:
-        gen_ini()
+        return gen_ini()
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
+# fmt: on
