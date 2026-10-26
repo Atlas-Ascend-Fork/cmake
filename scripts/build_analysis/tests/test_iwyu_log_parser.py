@@ -62,10 +62,13 @@ def make_source_file(tmp_path: Path, name: str, content: str) -> str:
     return fpath
 
 
-def make_iwyu_log(tmp_path: Path, fpath: str,
-                  add: list[str] | None = None,
-                  remove: list[str] | None = None,
-                  full: list[str] | None = None) -> str:
+def make_iwyu_log(
+    tmp_path: Path,
+    fpath: str,
+    add: list[str] | None = None,
+    remove: list[str] | None = None,
+    full: list[str] | None = None,
+) -> str:
     """生成指向 fpath 的 IWYU 日志文本。"""
     lines = []
     if add:
@@ -84,6 +87,7 @@ def make_iwyu_log(tmp_path: Path, fpath: str,
 
 
 # ===================== atomic_write 测试 =====================
+
 
 class TestAtomicWrite:
     """atomic_write 函数测试。"""
@@ -124,36 +128,44 @@ class TestAtomicWrite:
 
 # ===================== get_include_token / is_system_header 测试 =====================
 
+
 class TestStaticHelpers:
     """get_include_token 和 is_system_header 函数测试。"""
 
     @staticmethod
-    @pytest.mark.parametrize("line,expected", [
-        ("#include <stdio.h>", "<stdio.h>"),
-        ('#include "myheader.h"', '"myheader.h"'),
-        ("#include  <a.h>", "<a.h>"),
-        ('#include   "b.h"', '"b.h"'),
-        ("#include <vector>", "<vector>"),
-        ("not an include", ""),
-        ("", ""),
-    ])
+    @pytest.mark.parametrize(
+        "line,expected",
+        [
+            ("#include <stdio.h>", "<stdio.h>"),
+            ('#include "myheader.h"', '"myheader.h"'),
+            ("#include  <a.h>", "<a.h>"),
+            ('#include   "b.h"', '"b.h"'),
+            ("#include <vector>", "<vector>"),
+            ("not an include", ""),
+            ("", ""),
+        ],
+    )
     def test_get_include_token(line: str, expected: str) -> None:
         assert get_include_token(line) == expected
 
     @staticmethod
-    @pytest.mark.parametrize("token,expected", [
-        ("<stdio.h>", True),
-        ('"myheader.h"', False),
-        ("<vector>", True),
-        ('"local.h"', False),
-        ("", False),
-        ("<>", True),
-    ])
+    @pytest.mark.parametrize(
+        "token,expected",
+        [
+            ("<stdio.h>", True),
+            ('"myheader.h"', False),
+            ("<vector>", True),
+            ('"local.h"', False),
+            ("", False),
+            ("<>", True),
+        ],
+    )
     def test_is_system_header(*, token: str, expected: bool) -> None:
         assert is_system_header(token) == expected
 
 
 # ===================== build_remove_token_set 测试 =====================
+
 
 class TestBuildRemoveTokenSet:
     """build_remove_token_set 函数测试。"""
@@ -184,16 +196,25 @@ class TestBuildRemoveTokenSet:
 
 # ===================== annotate_lines 测试 =====================
 
+
 class TestAnnotateLines:
     """annotate_lines 函数测试。"""
 
     @staticmethod
-    def test_comment_redundant_user_header() -> None:
-        src = ['#include "redundant.h"\n', '#include "needed.h"\n']
+    @pytest.mark.parametrize(
+        "directive",
+        [
+            '#include "redundant.h"',
+            '# include "redundant.h"',
+            '#\tinclude "redundant.h"',
+        ],
+    )
+    def test_comment_redundant_user_header(directive: str) -> None:
+        src = [f"{directive}\n", '#include "needed.h"\n']
         rm_set = {'"redundant.h"'}
         new_lines, changed = annotate_lines(src, rm_set)
         assert changed is True
-        assert IWYU_FIX_MARKER in new_lines[0]
+        assert new_lines[0] == f"// {IWYU_FIX_MARKER} {directive}\n"
         assert new_lines[1] == '#include "needed.h"\n'
 
     @staticmethod
@@ -243,12 +264,21 @@ class TestAnnotateLines:
 
 # ===================== strip_commented_lines 测试 =====================
 
+
 class TestStripCommentedLines:
     """strip_commented_lines 函数测试。"""
 
     @staticmethod
-    def test_removes_commented_lines() -> None:
-        src = [f'// {IWYU_FIX_MARKER} #include "a.h"\n', '#include "b.h"\n']
+    @pytest.mark.parametrize(
+        "directive",
+        [
+            '#include "a.h"',
+            '# include "a.h"',
+            '#\tinclude "a.h"',
+        ],
+    )
+    def test_removes_commented_lines(directive: str) -> None:
+        src = [f"// {IWYU_FIX_MARKER} {directive}\n", '#include "b.h"\n']
         new_lines, changed = strip_commented_lines(src)
         assert changed is True
         assert new_lines == ['#include "b.h"\n']
@@ -268,6 +298,7 @@ class TestStripCommentedLines:
 
 
 # ===================== parse_log 测试 =====================
+
 
 class TestParseLog:
     """parse_log 解析逻辑测试。"""
@@ -318,10 +349,7 @@ class TestParseLog:
     @staticmethod
     def test_parse_dedup() -> None:
         log = (
-            "/tmp/a.cpp should add these lines:\n"
-            '#include "dup.h"\n'
-            '#include "dup.h"\n'
-            "\n"
+            '/tmp/a.cpp should add these lines:\n#include "dup.h"\n#include "dup.h"\n\n'
         )
         parser = IwyuLogParser()
         parser.parse_log(log)
@@ -342,11 +370,7 @@ class TestParseLog:
     @staticmethod
     @pytest.mark.parametrize("ext", [".c", ".cpp", ".cc", ".h", ".hpp", ".hh"])
     def test_parse_all_extensions(ext: str) -> None:
-        log = (
-            f"/tmp/test/file{ext} should add these lines:\n"
-            '#include "a.h"\n'
-            "\n"
-        )
+        log = f'/tmp/test/file{ext} should add these lines:\n#include "a.h"\n\n'
         parser = IwyuLogParser()
         parser.parse_log(log)
         assert f"/tmp/test/file{ext}" in parser.file_data
@@ -365,6 +389,7 @@ class TestParseLog:
 
 
 # ===================== generate_report 测试 =====================
+
 
 class TestGenerateReport:
     """generate_report 报告生成测试。"""
@@ -419,13 +444,15 @@ class TestGenerateReport:
 
 # ===================== annotate_redundant_user_headers 测试 =====================
 
+
 class TestAnnotateRedundantUserHeaders:
     """annotate_redundant_user_headers --fix 逻辑测试。"""
 
     @staticmethod
     def test_fix_modifies_source_file(tmp_path: Path) -> None:
-        fpath = make_source_file(tmp_path, "a.cpp",
-                                 '#include "redundant.h"\n#include "needed.h"\n')
+        fpath = make_source_file(
+            tmp_path, "a.cpp", '#include "redundant.h"\n#include "needed.h"\n'
+        )
         log = make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"'])
         parser = IwyuLogParser()
         parser.parse_log(log)
@@ -500,14 +527,15 @@ class TestAnnotateRedundantUserHeaders:
 
 # ===================== clean_commented_lines 测试 =====================
 
+
 class TestCleanCommentedLines:
     """clean_commented_lines --clean-commented 逻辑测试。"""
 
     @staticmethod
     def test_clean_removes_commented_lines(tmp_path: Path) -> None:
         fpath = make_source_file(
-            tmp_path, "a.cpp",
-            f'// {IWYU_FIX_MARKER} #include "a.h"\n#include "b.h"\n')
+            tmp_path, "a.cpp", f'// {IWYU_FIX_MARKER} #include "a.h"\n#include "b.h"\n'
+        )
         cleaned = IwyuLogParser.clean_commented_lines([fpath])
         assert fpath in cleaned
         with open(fpath, encoding="utf-8") as f:
@@ -526,8 +554,8 @@ class TestCleanCommentedLines:
     @staticmethod
     def test_clean_skips_header_file(tmp_path: Path) -> None:
         fpath = make_source_file(
-            tmp_path, "a.h",
-            f'// {IWYU_FIX_MARKER} #include "a.h"\n')
+            tmp_path, "a.h", f'// {IWYU_FIX_MARKER} #include "a.h"\n'
+        )
         cleaned = IwyuLogParser.clean_commented_lines([fpath])
         assert fpath not in cleaned
 
@@ -546,9 +574,11 @@ class TestCleanCommentedLines:
     @staticmethod
     def test_clean_preserves_normal_comments(tmp_path: Path) -> None:
         fpath = make_source_file(
-            tmp_path, "a.cpp",
+            tmp_path,
+            "a.cpp",
             '// #include "user_comment.h"\n'
-            f'// {IWYU_FIX_MARKER} #include "redundant.h"\n')
+            f'// {IWYU_FIX_MARKER} #include "redundant.h"\n',
+        )
         cleaned = IwyuLogParser.clean_commented_lines([fpath])
         assert fpath in cleaned
         with open(fpath, encoding="utf-8") as f:
@@ -564,21 +594,32 @@ class TestCleanCommentedLines:
 
 # ===================== main / CLI 测试 =====================
 
+
 class TestMainCLI:
     """main 函数与命令行参数测试。"""
 
     @staticmethod
     def test_mutex_fix_and_clean_commented(caplog: LogCaptureFixture) -> None:
-        args = argparse.Namespace(fix=True, clean_commented=True, dry_run=False,
-                                  log_input="dummy.log", report_out=None)
+        args = argparse.Namespace(
+            fix=True,
+            clean_commented=True,
+            dry_run=False,
+            log_input="dummy.log",
+            report_out=None,
+        )
         with pytest.raises(IwyuLogParserError):
             validate_args(args)
         assert "不能同时使用" in caplog.text
 
     @staticmethod
     def test_dry_run_alone_exits(caplog: LogCaptureFixture) -> None:
-        args = argparse.Namespace(fix=False, clean_commented=False, dry_run=True,
-                                  log_input="dummy.log", report_out=None)
+        args = argparse.Namespace(
+            fix=False,
+            clean_commented=False,
+            dry_run=True,
+            log_input="dummy.log",
+            report_out=None,
+        )
         with pytest.raises(IwyuLogParserError):
             validate_args(args)
         assert "dry-run" in caplog.text
@@ -615,12 +656,14 @@ class TestMainCLI:
     @staticmethod
     def test_fix_flow(tmp_path: Path, caplog: LogCaptureFixture) -> None:
         caplog.set_level(logging.INFO)
-        fpath = make_source_file(tmp_path, "a.cpp",
-                                 '#include "redundant.h"\n#include "needed.h"\n')
+        fpath = make_source_file(
+            tmp_path, "a.cpp", '#include "redundant.h"\n#include "needed.h"\n'
+        )
         log_file = tmp_path / "test.log"
         log_file.write_text(
             make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"']),
-            encoding="utf-8")
+            encoding="utf-8",
+        )
         sys.argv = ["prog", str(log_file), "--fix"]
         iwyu_log_parser.main()
         assert "MODIFIED:" in caplog.text
@@ -636,7 +679,8 @@ class TestMainCLI:
         log_file = tmp_path / "test.log"
         log_file.write_text(
             make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"']),
-            encoding="utf-8")
+            encoding="utf-8",
+        )
         sys.argv = ["prog", str(log_file), "--fix", "--dry-run"]
         iwyu_log_parser.main()
         assert "MODIFIED:" in caplog.text
@@ -648,12 +692,15 @@ class TestMainCLI:
     def test_clean_commented_flow(tmp_path: Path, caplog: LogCaptureFixture) -> None:
         caplog.set_level(logging.INFO)
         fpath = make_source_file(
-            tmp_path, "a.cpp",
-            f'// {IWYU_FIX_MARKER} #include "redundant.h"\n#include "needed.h"\n')
+            tmp_path,
+            "a.cpp",
+            f'// {IWYU_FIX_MARKER} #include "redundant.h"\n#include "needed.h"\n',
+        )
         log_file = tmp_path / "test.log"
         log_file.write_text(
             make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"']),
-            encoding="utf-8")
+            encoding="utf-8",
+        )
         sys.argv = ["prog", str(log_file), "--clean-commented"]
         iwyu_log_parser.main()
         assert "CLEANED:" in caplog.text
@@ -670,21 +717,26 @@ class TestMainCLI:
         assert "IWYU 头文件依赖分析报告" in caplog.text
 
     @staticmethod
-    def test_fix_no_modification_message(tmp_path: Path, caplog: LogCaptureFixture) -> None:
+    def test_fix_no_modification_message(
+        tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         caplog.set_level(logging.INFO)
         fpath = make_source_file(tmp_path, "a.cpp", '#include "needed.h"\n')
         log_file = tmp_path / "test.log"
         log_file.write_text(
             make_iwyu_log(tmp_path, fpath, remove=['#include "nonexist.h"']),
-            encoding="utf-8")
+            encoding="utf-8",
+        )
         sys.argv = ["prog", str(log_file), "--fix"]
         iwyu_log_parser.main()
         assert "无需要注释的自定义冗余头文件" in caplog.text
 
     @staticmethod
-    def test_clean_no_modification_message(tmp_path: Path, caplog: LogCaptureFixture) -> None:
+    def test_clean_no_modification_message(
+        tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         caplog.set_level(logging.INFO)
-        fpath = make_source_file(tmp_path, "a.cpp", '#include "a.h"\n')
+        make_source_file(tmp_path, "a.cpp", '#include "a.h"\n')
         log_file = tmp_path / "test.log"
         log_file.write_text(SAMPLE_LOG, encoding="utf-8")
         sys.argv = ["prog", str(log_file), "--clean-commented"]
@@ -693,6 +745,7 @@ class TestMainCLI:
 
 
 # ===================== 端到端流程测试 =====================
+
 
 class TestEndToEnd:
     """fix -> clean-commented 完整两阶段流程测试。"""
@@ -703,9 +756,9 @@ class TestEndToEnd:
         fpath = make_source_file(tmp_path, "e2e.cpp", original)
         log_file = tmp_path / "e2e.log"
         log_file.write_text(
-            make_iwyu_log(tmp_path, fpath,
-                          remove=['#include "redundant.h"']),
-            encoding="utf-8")
+            make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"']),
+            encoding="utf-8",
+        )
 
         # 阶段1: --fix
         sys.argv = ["prog", str(log_file), "--fix"]

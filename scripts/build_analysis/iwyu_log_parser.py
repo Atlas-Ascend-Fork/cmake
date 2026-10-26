@@ -30,32 +30,36 @@ _EXT_PATTERN = "|".join(ext[1:] for ext in ALL_EXTENSIONS)
 # ===================== 正则（完全对齐真实IWYU日志格式） =====================
 # 1. should add 区块开头: /path/to/file.c should add these lines:
 PATTERN_ADD_BLOCK_HEAD = re.compile(
-    rf"^(.+\.(?:{_EXT_PATTERN})) should add these lines:$")
+    rf"^(.+\.(?:{_EXT_PATTERN})) should add these lines:$"
+)
 # add区块内完整行（保留末尾//注释）
 PATTERN_ADD_INCLUDE_LINE = re.compile(r"^\s*(#include\s*[<\"].*?[>\"].*)$")
 
 # 2. should remove 区块开头: /path/to/file.c should remove these lines:
 PATTERN_REMOVE_BLOCK_HEAD = re.compile(
-    rf"^(.+\.(?:{_EXT_PATTERN})) should remove these lines:$")
+    rf"^(.+\.(?:{_EXT_PATTERN})) should remove these lines:$"
+)
 # remove内待删除完整行: - #include "example.h"  // lines xx
 PATTERN_REMOVE_INCLUDE_LINE = re.compile(r"^-\s*(#include\s*[<\"].*?[>\"].*)$")
 
 # 3. full list头部：The full include-list for /path/to/file.c:
 PATTERN_FULL_BLOCK_HEAD = re.compile(
-    rf"^The full include-list for (.+\.(?:{_EXT_PATTERN})):$")
+    rf"^The full include-list for (.+\.(?:{_EXT_PATTERN})):$"
+)
 # full区块内完整#include行，保留尾部注释
 PATTERN_FULL_INCLUDE_LINE = re.compile(r"^\s*(#include\s*[<\"].*?[>\"].*)$")
 
 # 提取include内引号内容（仅用于修复阶段判断是否系统头文件，展示用完整行）
 PATTERN_INCLUDE_TOKEN = re.compile(r"#include\s*([<\"].*?[>\"])")
 
-# 源码原生无注释#include行（用于fix替换）
-PATTERN_RAW_INCLUDE_TOKEN = re.compile(r"^\s*#include\s*([<\"].*?[>\"])")
-# 脚本生成的注释冗余行 // [iwyu-fix] #include <...> 或 // [iwyu-fix] #include "..."
+# 源码原生无注释include行（用于fix替换，# 后允许空格或制表符）
+PATTERN_RAW_INCLUDE_TOKEN = re.compile(r"^\s*#[ \t]*include\s*([<\"].*?[>\"])")
+# 脚本生成的注释冗余行 // [iwyu-fix] #include <...> 或 // [iwyu-fix] # include "..."
 IWYU_FIX_MARKER = "[iwyu-fix]"
 _IWYU_FIX_MARKER_ESCAPED = re.escape(IWYU_FIX_MARKER)
 PATTERN_COMMENTED_INCLUDE = re.compile(
-    rf"^\s*//\s*{_IWYU_FIX_MARKER_ESCAPED}\s*#include\s*([<\"].*?[>\"])")
+    rf"^\s*//\s*{_IWYU_FIX_MARKER_ESCAPED}\s*#[ \t]*include\s*([<\"].*?[>\"])"
+)
 
 FILE_ENCODING = "utf-8"
 FILE_ERRORS = "replace"
@@ -122,7 +126,7 @@ def annotate_lines(src_lines: list[str], rm_token_set: set) -> tuple[list[str], 
         if m_tok:
             inc_token = m_tok.group(1)
             if inc_token in rm_token_set and not is_system_header(inc_token):
-                indent = line[:len(line) - len(line.lstrip())]
+                indent = line[: len(line) - len(line.lstrip())]
                 new_line = f"{indent}// {IWYU_FIX_MARKER} {s_line}\n"
                 new_lines.append(new_line)
                 changed = True
@@ -151,8 +155,12 @@ def _log_failed_files(failed: list[tuple[str, str]]) -> None:
             logger.warning("  - %s: %s", fpath, err)
 
 
-def _process_file(fpath: str, *, dry_run: bool,
-                  transform_fn: Callable[[list[str]], tuple[list[str], bool]]) -> bool:
+def _process_file(
+    fpath: str,
+    *,
+    dry_run: bool,
+    transform_fn: Callable[[list[str]], tuple[list[str], bool]],
+) -> bool:
     """通用文件处理：读取、变换、写回。返回是否发生变更。"""
     try:
         with open(fpath, encoding=FILE_ENCODING, errors=FILE_ERRORS) as f:
@@ -165,10 +173,14 @@ def _process_file(fpath: str, *, dry_run: bool,
         raise IwyuLogParserError(f"{fpath}: {e}") from e
 
 
-def _make_annotate_fn(rm_token_set: set) -> Callable[[list[str]], tuple[list[str], bool]]:
+def _make_annotate_fn(
+    rm_token_set: set,
+) -> Callable[[list[str]], tuple[list[str], bool]]:
     """创建绑定特定rm_token_set的annotate_lines闭包。"""
+
     def _annotate(src_lines: list[str]) -> tuple[list[str], bool]:
         return annotate_lines(src_lines, rm_token_set)
+
     return _annotate
 
 
@@ -177,14 +189,18 @@ class IwyuLogParser:
 
     def __init__(self) -> None:
         # 文件路径 -> {add: set, remove: set, full: set} 先用集合自动去重
-        self.file_data = defaultdict(lambda: {"add": set(), "remove": set(), "full": set()})
+        self.file_data = defaultdict(
+            lambda: {"add": set(), "remove": set(), "full": set()}
+        )
         self.cur_file = None
         self.in_add_block = False
         self.in_remove_block = False
         self.in_full_block = False
 
     @staticmethod
-    def clean_commented_lines(all_files: list[str], *, dry_run: bool = False) -> list[str]:
+    def clean_commented_lines(
+        all_files: list[str], *, dry_run: bool = False
+    ) -> list[str]:
         """--clean-commented：永久删除脚本注释生成的// [iwyu-fix] #include 行。"""
         cleaned = []
         failed = []
@@ -193,7 +209,8 @@ class IwyuLogParser:
                 continue
             try:
                 changed = _process_file(
-                    fpath, dry_run=dry_run, transform_fn=strip_commented_lines)
+                    fpath, dry_run=dry_run, transform_fn=strip_commented_lines
+                )
                 if changed:
                     cleaned.append(fpath)
             except IwyuLogParserError as e:
@@ -202,8 +219,9 @@ class IwyuLogParser:
         return cleaned
 
     @staticmethod
-    def _append_file_report(report: list[str], fpath: str, data: dict,
-                            stats: dict) -> None:
+    def _append_file_report(
+        report: list[str], fpath: str, data: dict, stats: dict
+    ) -> None:
         """向report追加单个文件的报告段落并更新统计。"""
         add_lines = sorted(data["add"])
         rm_lines = sorted(data["remove"])
@@ -215,7 +233,9 @@ class IwyuLogParser:
         report.append(f"【文件】{fpath}")
 
         IwyuLogParser._append_add_section(report, add_lines, is_src=is_src, stats=stats)
-        IwyuLogParser._append_remove_section(report, rm_lines, is_src=is_src, stats=stats)
+        IwyuLogParser._append_remove_section(
+            report, rm_lines, is_src=is_src, stats=stats
+        )
 
         if full_lines:
             report.append(f"  [3] The full include-list 全部头文件({len(full_lines)}):")
@@ -224,8 +244,9 @@ class IwyuLogParser:
         report.append("-" * 70)
 
     @staticmethod
-    def _append_add_section(report: list[str], add_lines: list[str],
-                            *, is_src: bool, stats: dict) -> None:
+    def _append_add_section(
+        report: list[str], add_lines: list[str], *, is_src: bool, stats: dict
+    ) -> None:
         """向report追加should add段落并更新统计。"""
         if not add_lines:
             return
@@ -237,8 +258,9 @@ class IwyuLogParser:
                 stats["add_src"] += 1
 
     @staticmethod
-    def _append_remove_section(report: list[str], rm_lines: list[str],
-                               *, is_src: bool, stats: dict) -> None:
+    def _append_remove_section(
+        report: list[str], rm_lines: list[str], *, is_src: bool, stats: dict
+    ) -> None:
         """向report追加should remove段落并更新统计。"""
         if not rm_lines:
             return
@@ -254,17 +276,19 @@ class IwyuLogParser:
     @staticmethod
     def _append_summary(report: list[str], stats: dict) -> None:
         """向report追加全局汇总统计。"""
-        report.extend([
-            "",
-            "==== 全局汇总统计 ====",
-            f"解析文件总数(已去重): {stats.get('file_count', 0)}",
-            f"可修复源码({', '.join(SOURCE_EXTENSIONS)})数量: {stats['modify']}",
-            f"建议新增头文件总行数(已去重): {stats['add']} (其中源文件: {stats['add_src']})",
-            f"冗余待清理头文件总行数(已去重): {stats['remove']} (其中源文件: {stats['remove_src']})",
-            f"修复规则：仅注释双引号自定义头文件，<>系统头文件不修改；"
-            f"仅处理{'/'.join(SOURCE_EXTENSIONS)}，{'/'.join(HEADER_EXTENSIONS)}文件不改动",
-            "=" * 90,
-        ])
+        report.extend(
+            [
+                "",
+                "==== 全局汇总统计 ====",
+                f"解析文件总数(已去重): {stats.get('file_count', 0)}",
+                f"可修复源码({', '.join(SOURCE_EXTENSIONS)})数量: {stats['modify']}",
+                f"建议新增头文件总行数(已去重): {stats['add']} (其中源文件: {stats['add_src']})",
+                f"冗余待清理头文件总行数(已去重): {stats['remove']} (其中源文件: {stats['remove_src']})",
+                f"修复规则：仅注释双引号自定义头文件，<>系统头文件不修改；"
+                f"仅处理{'/'.join(SOURCE_EXTENSIONS)}，{'/'.join(HEADER_EXTENSIONS)}文件不改动",
+                "=" * 90,
+            ]
+        )
 
     def parse_log(self, log_text: str) -> None:
         """解析IWYU日志文本，填充file_data。"""
@@ -281,8 +305,14 @@ class IwyuLogParser:
             report.append("【警告】未解析到任何文件数据，请检查日志格式！")
             return "\n".join(report)
 
-        stats = {"add": 0, "remove": 0, "add_src": 0, "remove_src": 0,
-                 "modify": 0, "file_count": len(self.file_data)}
+        stats = {
+            "add": 0,
+            "remove": 0,
+            "add_src": 0,
+            "remove_src": 0,
+            "modify": 0,
+            "file_count": len(self.file_data),
+        }
         for fpath, data in sorted(self.file_data.items()):
             self._append_file_report(report, fpath, data, stats)
 
@@ -304,8 +334,8 @@ class IwyuLogParser:
                 continue
             try:
                 changed = _process_file(
-                    fpath, dry_run=dry_run,
-                    transform_fn=_make_annotate_fn(rm_token_set))
+                    fpath, dry_run=dry_run, transform_fn=_make_annotate_fn(rm_token_set)
+                )
                 if changed:
                     modified.append(fpath)
             except IwyuLogParserError as e:
@@ -379,18 +409,25 @@ class IwyuLogParser:
 def _build_arg_parser() -> argparse.ArgumentParser:
     """构建命令行参数解析器。"""
     arg_parser = argparse.ArgumentParser(
-        description="IWYU日志解析修复工具（自动去重，报告顺序：add -> remove -> full list）")
+        description="IWYU日志解析修复工具（自动去重，报告顺序：add -> remove -> full list）"
+    )
     arg_parser.add_argument("log_input", help="IWYU日志文件路径；输入'-'从管道读取")
     arg_parser.add_argument("--report-out", type=str, help="导出报告到指定文件")
     arg_parser.add_argument(
-        "--fix", action="store_true",
-        help=f"阶段1：注释{'/'.join(SOURCE_EXTENSIONS)}冗余自定义头文件，<>系统头文件跳过")
+        "--fix",
+        action="store_true",
+        help=f"阶段1：注释{'/'.join(SOURCE_EXTENSIONS)}冗余自定义头文件，<>系统头文件跳过",
+    )
     arg_parser.add_argument(
-        "--clean-commented", action="store_true",
-        help="阶段2：彻底删除注释的冗余include行（提交前使用）")
+        "--clean-commented",
+        action="store_true",
+        help="阶段2：彻底删除注释的冗余include行（提交前使用）",
+    )
     arg_parser.add_argument(
-        "--dry-run", action="store_true",
-        help="预览模式：仅展示将要变更的文件，不实际修改")
+        "--dry-run",
+        action="store_true",
+        help="预览模式：仅展示将要变更的文件，不实际修改",
+    )
     return arg_parser
 
 
@@ -402,8 +439,12 @@ def validate_args(args: argparse.Namespace) -> None:
         logger.error("  2. 编译验证无误后，再运行 --clean-commented 清理注释行")
         raise IwyuLogParserError("参数互斥: --fix 与 --clean-commented")
     if args.dry_run and not args.fix and not args.clean_commented:
-        logger.warning("--dry-run 需要与 --fix 或 --clean-commented 配合使用，单独使用无实际效果")
-        raise IwyuLogParserError("参数无效: --dry-run 需配合 --fix 或 --clean-commented")
+        logger.warning(
+            "--dry-run 需要与 --fix 或 --clean-commented 配合使用，单独使用无实际效果"
+        )
+        raise IwyuLogParserError(
+            "参数无效: --dry-run 需配合 --fix 或 --clean-commented"
+        )
 
 
 def read_log(log_input: str) -> str:
@@ -454,7 +495,9 @@ def _run_clean(all_files: list[str], *, dry_run: bool) -> None:
     """执行--clean-commented阶段：清理注释行并输出变更清单。"""
     clean_files = IwyuLogParser.clean_commented_lines(all_files, dry_run=dry_run)
     if dry_run:
-        logger.info("==== --clean-commented --dry-run 预览：以下文件将被清理注释行 ====")
+        logger.info(
+            "==== --clean-commented --dry-run 预览：以下文件将被清理注释行 ===="
+        )
     else:
         logger.info("==== --clean-commented 永久清理注释行 变更清单 ====")
     if clean_files:
@@ -467,9 +510,7 @@ def _run_clean(all_files: list[str], *, dry_run: bool) -> None:
 
 def main() -> None:
     """主入口函数。"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(levelname)s] %(message)s")
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
     args = _build_arg_parser().parse_args()
 
     try:
