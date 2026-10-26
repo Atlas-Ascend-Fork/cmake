@@ -336,22 +336,24 @@ p7s 文件由 signatrust_client 生成在输入文件同目录，命名为 `输�
 
 由 `esbc_header.py` 写入，包含镜像的安全元数据：
 
-| 字段 | 大小 | 说明 |
-|------|------|------|
-| code_tag | 16B | 镜像标签（ASCII） |
-| nvcnt | 4B | 安全版本号（用于防回滚） |
-| hash_alg | 4B | 哈希算法（0 = SHA256） |
-| code_hash | 64B | 镜像 SHA256 摘要 |
-| code_offset | 4B | 镜像数据偏移（before_header=0, after_header=0x100） |
-| code_len | 4B | 镜像数据长度 |
-| ver_value | 16B | 版本字符串 |
-| magic_num | 4B | ESBC magic（`0x3a3aaa33`） |
-| sign_enable_field | 4B | 签名使能标志（`0x4`） |
-| hashtree_offset | 4B | 哈希树偏移（`0x20000` = 128K） |
-| hw_logic_version | 4B | 硬件逻辑版本 |
-| image_version | 4B | 镜像版本（magic `0x564D` + version 0） |
-| hwheader_offset | 4B | 硬件头偏移（256） |
-| reserved | 112B | `0xff` 填充 |
+| 头内偏移 | 字段 | 大小 | 说明 |
+|----------|------|------|------|
+| 0x00 | code_tag | 16B | 镜像标签（ASCII） |
+| 0x10 | nvcnt | 4B | 安全版本号（用于防回滚） |
+| 0x14 | hash_alg | 4B | 哈希算法（0 = SHA256） |
+| 0x18 | code_hash | 64B | 镜像 SHA256 摘要 |
+| 0x58 | code_offset | 4B | 镜像数据偏移（before_header=0, after_header=0x100） |
+| 0x5c | code_len | 4B | 镜像数据长度 |
+| 0x60 | reserved1 | 8B | 保留字段，写入 8 个零字节 |
+| 0x68 | ver_value | 16B | 版本字符串 |
+| 0x78 | magic_num | 4B | ESBC magic（`0x3a3aaa33`） |
+| 0x7c | sign_enable_field | 4B | 签名使能标志（`0x4`） |
+| 0x80 | hashtree_offset | 4B | 哈希树偏移（`0x20000` = 128K） |
+| 0x84 | hw_logic_version | 4B | 硬件逻辑版本 |
+| 0x88 | image_version | 4B | 镜像版本（magic `0x564D` + version 0） |
+| 0x8c | hwheader_offset | 4B | 硬件头偏移（256） |
+| 0x90 | reserved2 | 112B | `0xff` 填充 |
+| — | 合计 | 256B | 与 `struct.Struct` 格式长度一致 |
 
 **position 语义**：
 - `after_header`（默认）：ESBC 头在镜像数据前面（偏移 0x100），头在前数据在后。
