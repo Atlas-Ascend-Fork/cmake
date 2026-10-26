@@ -88,7 +88,11 @@ bash build.sh --pkgs=npu-runtime --enable-sign --sign-script /path/to/custom_sig
 不通过 CMake，直接运行签名脚本：
 
 ```bash
-# 不签名，仅加头（社区开发者常用）
+# 不制作 CMS 签名，但加 ESBC 头和 BIOS 基础头；配置中的 type 留空
+python3 scripts/sign/add_header_sign.py /path/to/images true \
+    --bios_check_cfg=bios_check_cfg.xml
+
+# 完全跳过加头和签名
 python3 scripts/sign/add_header_sign.py /path/to/images false
 
 # 签名 + 加头
@@ -191,7 +195,7 @@ python3 add_header_sign.py <sign_file_dir> [sign_flag] [options]
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `sign_file_dir` | 待签名文件的根目录（必选） | — |
-| `sign_flag` | 是否签名：`true`/`false` | `false` |
+| `sign_flag` | 是否执行处理：`true` 按配置加头/签名，`false` 完全跳过 | `false` |
 | `--bios_check_cfg` | 签名配置 XML 文件路径 | `bios_check_cfg.xml` |
 | `--version` | 版本号 | — |
 | `--sign_script` | 签名插件脚本路径 | 未设置时使用 `scripts/sign/community_sign_build.py` |
@@ -239,7 +243,7 @@ cat > /tmp/bios_check_cfg.xml << 'EOF'
 EOF
 
 # 3. 执行加头（不签名）
-python3 scripts/sign/add_header_sign.py /tmp/images false \
+python3 scripts/sign/add_header_sign.py /tmp/images true \
     --bios_check_cfg=/tmp/bios_check_cfg.xml \
     --version=1.0
 ```
@@ -281,7 +285,7 @@ python3 scripts/sign/add_header_sign.py /tmp/images true \
 
 **Q: 签名失败提示 "command not found: signatrust_client"**
 
-A: signatrust_client 未安装或路径不正确。设置 `SIGN_CLIENT_PATH` 环境变量指向正确路径，或使用不签名模式（`sign_flag=false`）。
+A: signatrust_client 未安装或路径不正确。设置 `SIGN_CLIENT_PATH` 环境变量指向正确路径；若只需加头而不制作 CMS 签名，将配置中的 `type` 留空并使用 `sign_flag=true`。
 
 **Q: CRL 下载失败**
 
