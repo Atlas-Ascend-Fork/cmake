@@ -19,18 +19,20 @@ import logging
 它们会在 import 时检查 logging 配置。CommLog 自身不使用 logging，而是通过 print 直接输出，
 因为 CMake 的 execute_process 通过 stdout 捕获输出，使用 logging 可能导致消息被重定向到 stderr。
 """
-logging.basicConfig(format='[%(asctime)s] [%(levelname)s] [%(pathname)s] [line:%(lineno)d] %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format="[%(asctime)s] [%(levelname)s] [%(pathname)s] [line:%(lineno)d] %(message)s",
+    level=logging.INFO,
+)
 
 
 class CommLog:
     @staticmethod
     def cilog_get_timestamp():
-        return time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
     @staticmethod
     def cilog_print_element(cilog_element):
-        print("["+cilog_element+"]", end=' ')
+        print("[" + cilog_element + "]", end=" ")
         return
 
     @staticmethod
@@ -53,7 +55,7 @@ class CommLog:
                 print(log_msg % log_paras[0])
             else:
                 print(log_msg)
-        except (TypeError, ValueError):
+        except (KeyError, TypeError, ValueError):
             print(log_msg)
         return
 

@@ -8,7 +8,6 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import pytest
 
 from ..utils.comm_log import CommLog
 
@@ -18,11 +17,11 @@ def test_comm_log_timestamp_format():
     ts = CommLog.cilog_get_timestamp()
     assert isinstance(ts, str)
     assert len(ts) == 19
-    parts = ts.split(' ')
+    parts = ts.split(" ")
     assert len(parts) == 2
-    date_parts = parts[0].split('-')
+    date_parts = parts[0].split("-")
     assert len(date_parts) == 3
-    time_parts = parts[1].split(':')
+    time_parts = parts[1].split(":")
     assert len(time_parts) == 3
 
 
@@ -139,3 +138,9 @@ def test_cilog_includes_filename_and_lineno(capsys):
     assert "[ERROR]" in captured.out
     assert "test_comm_log.py" in captured.out
 
+
+def test_cilog_error_missing_mapping_key(capsys):
+    """映射格式缺少键时, 降级输出原始消息, 不抛异常"""
+    CommLog.cilog_error("%(missing)s", {"present": "value"})
+    captured = capsys.readouterr()
+    assert "%(missing)s" in captured.out
