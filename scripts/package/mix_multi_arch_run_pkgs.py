@@ -393,7 +393,8 @@ class MixCommand:
                     if not mix.mix_artifacts(other_mix):
                         ret = False
                         continue
-                    mix.repack_run()
+                    if not mix.repack_run():
+                        ret = False
             return ret
         finally:
             if self.args.clean:
