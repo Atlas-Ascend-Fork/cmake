@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------------------------------------
 # pylint pre-commit 包装脚本
 # 当 pylint 未安装时（如 CI 门禁环境）自动跳过检查，避免阻断提交；
-# pylint 已安装时正常执行检查。与 oat_check.sh 的缺失跳过策略一致。
+# pylint 已安装时正常执行检查。
 
 if ! command -v pylint >/dev/null 2>&1; then
     echo "[pylint] pylint not installed, skipping check."

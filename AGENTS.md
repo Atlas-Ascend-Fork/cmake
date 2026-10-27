@@ -42,7 +42,7 @@ pre-commit run --all-files  # manual full-repo check
 ```
 
 - Config in `.pre-commit-config.yaml`. Before committing, run `pre-commit run --files <changed files>` to verify hooks pass.
-- Hooks: trailing-whitespace, end-of-file-fixer, check-yaml, check-added-large-files, check-merge-conflict, detect-private-key, check-json (pre-commit-hooks); ruff-check + ruff-format (Python); pylint R1710/R0801/W0621 (rules ruff cannot cover, config in `.pylintrc`); codespell; OAT compliance (`scripts/oat_check.sh`).
+- Hooks: trailing-whitespace, end-of-file-fixer, check-yaml, check-added-large-files, check-merge-conflict, detect-private-key, check-json (pre-commit-hooks); ruff-check + ruff-format (Python); pylint R1710/R0801/W0621 (rules ruff cannot cover, config in `.pylintrc`); codespell; OAT compliance (remote hook `oat-check` from `gitcode.com/HiAgent/compliance`, pinned by `rev`).
 - Some hooks auto-fix (trailing-whitespace, end-of-file-fixer, ruff-check `--fix`, ruff-format); re-stage after they run.
 - Existing code may have pre-existing violations — only files you touch are checked at commit time.
 
