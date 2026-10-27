@@ -1061,7 +1061,7 @@ function(cann_pack_targets_and_files)
                 "--mode=u=rwX,g=rX,o="
         ${size_check_command}
         WORKING_DIRECTORY ${staging_root_dir}
-        DEPENDS ${ARG_TARGETS} ${staging_dir} ${ini_depends}
+        DEPENDS ${ARG_TARGETS} ${ARG_FILES} ${staging_dir} ${ini_depends}
         COMMENT "Packing with ${ARG_OUTPUT}"
         VERBATIM
     )

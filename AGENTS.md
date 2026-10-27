@@ -22,11 +22,12 @@ bash build.sh --pkgs=<PACKAGES> [-j<N>] [-v] [--pkg-type=run|rpm|deb|deb,rpm|all
 ## Tests
 
 ```bash
-python3 -m pytest scripts/                        # all tests (package, version, sign, build_analysis)
+python3 -m pytest scripts/                        # all tests (package, version, sign, build_analysis, cmake)
 python3 -m pytest scripts/package/tests/          # packaging tests (from repo root)
 python3 -m pytest scripts/version/tests/          # version info generation tests
 python3 -m pytest scripts/build_analysis/tests/   # IWYU log parser tests
 python3 -m pytest scripts/sign/tests/             # signing script tests
+python3 -m pytest scripts/cmake/tests/              # CMake packaging helper tests
 python3 -m pytest scripts/package/tests/test_package.py::TestGetComments -v   # single test
 ```
 
@@ -58,7 +59,7 @@ pre-commit run --all-files  # manual full-repo check
 
 ## Public API consumed by CANN repos
 
-Functions in `function/prepare.cmake` are the framework's public API: `init_cann_project`, `set_cann_package`, `set_cann_build_dependencies`, `set_cann_run_dependencies`, `check_cann_build_tool`, `set_cann_cpack_config`, `add_cann_third_party`, `find_cann_package`, `generate_cann_stub_library`, `cann_pack_targets_and_files`, `gen_cann_version_header`, `add_cann_sign_file`. Consumer repos call these from their own `CMakeLists.txt`; changing signatures or behavior is a cross-repo breaking change.
+Functions in `function/prepare.cmake` are the framework's public API: `init_cann_project`, `set_cann_package`, `set_cann_build_dependencies`, `set_cann_run_dependencies`, `check_cann_build_tool`, `set_cann_cpack_config`, `add_cann_third_party`, `find_cann_package`, `generate_cann_stub_library`, `cann_pack_targets_and_files`, `gen_cann_version_header`, `add_cann_sign_file`. Consumer repos call these from their own `CMakeLists.txt`; changing signatures or behavior is a cross-repo breaking change. Files passed through `FILES` to `cann_pack_targets_and_files` are build dependencies, so edits regenerate the archive.
 
 ## Directory map
 
