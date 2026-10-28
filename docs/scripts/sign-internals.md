@@ -48,7 +48,7 @@ CANN 镜像在发布前需要完成安全加固：绑定版本信息、安全版
 │  工具层（scripts/signtool/）                                      │
 │  esbc_header.py — 写入 256 字节 ESBC 二级头                       │
 │  ini_gen.py — 计算镜像 SHA256 摘要                                │
-│  image_pack.py — 绑定完整镜像头（0x600 字节）                     │
+│  image_pack.py — 写入 BIOS 头结构体并封装镜像区域                  │
 │  ci_img_handler.py — 从已加头镜像提取原始镜像                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -65,7 +65,7 @@ CANN 镜像在发布前需要完成安全加固：绑定版本信息、安全版
 | `community_sign_build.py` | CMS 签名执行器 | 待签名文件列表 | `.p7s` 签名文件 |
 | `esbc_header.py` | ESBC 头工具 | 原始镜像 + 版本/nvcnt/tag | 加了 256B 头的镜像 |
 | `ini_gen.py` | 摘要生成工具 | 镜像列表 XML | 每个镜像的 `.ini` 摘要文件 |
-| `image_pack.py` | 镜像加头工具 | 镜像 + 签名/摘要/CRL | 加了完整头的镜像 |
+| `image_pack.py` | 镜像加头工具 | 镜像 + 签名/摘要/CRL | 封装后的镜像（头结构体、镜像区域及关联数据） |
 | `ci_img_handler.py` | 镜像提取工具 | 已加头镜像 | 原始镜像（逆向操作） |
 
 ### 2.3 调用链
@@ -272,23 +272,21 @@ p7s 文件由 signatrust_client 生成在输入文件同目录，命名为 `输�
 
 ### 5.1 两种模式的最终文件格式对比
 
-加头后的镜像文件由多个区域组成，签名模式与不签名模式的区别在于是否包含 CMS 签名区。以 `position="after_header"`（默认）为例：
+加头后的镜像文件由多个区域组成，签名模式与不签名模式的区别在于是否包含 CMS 签名区。默认未传 `-S` 时，`image_pack.py` 将 BIOS 头结构体写在文件偏移 0，原始输入镜像从偏移 `0x2000` 开始；若步骤 1 已生成 ESBC 头，它位于该原始输入镜像的开头。以下以 `position="after_header"`（默认）为例：
 
 **不签名模式（加头不签名）**：
 
 ```
 ┌─────────────────────────────────────────┐
-│ ESBC 头 (256 字节)                       │  ← esbc_header.py 写入
-│   code_tag / nvcnt / code_hash /        │
-│   magic(0x3a3aaa33) / version ...       │
+│ BIOS 头结构体 (0x600 字节)               │  ← image_pack.py 写入
+│   preamble / head_len / code_hash /     │
+│   magic_number / nvcnt 等结构体字段      │
 ├─────────────────────────────────────────┤
-│ BIOS 头 (0x600 字节)                     │  ← image_pack.py 写入
-│   preamble(0x55AA55AA) / head_len /     │
-│   code_hash / RSA 公钥区 / RSA 签名区 /  │
-│   magic_number / nvcnt ...              │
+│ 结构体后的文件区（至镜像偏移 0x2000）    │
+│   证书与签名位置由结构体中的偏移字段指定 │
 ├─────────────────────────────────────────┤
-│ 原始镜像数据                             │
-│   (从偏移 0x2000 开始)                    │
+│ 原始输入镜像区域（从偏移 0x2000 开始）    │
+│   ESBC 头（若有，256 字节）+ 原始镜像数据 │
 └─────────────────────────────────────────┘
 ```
 
@@ -296,17 +294,15 @@ p7s 文件由 signatrust_client 生成在输入文件同目录，命名为 `输�
 
 ```
 ┌─────────────────────────────────────────┐
-│ ESBC 头 (256 字节)                       │  ← esbc_header.py 写入
-│   code_tag / nvcnt / code_hash /        │
-│   magic(0x3a3aaa33) / version ...       │
+│ BIOS 头结构体 (0x600 字节)               │  ← image_pack.py 写入
+│   preamble / head_len / code_hash /     │
+│   magic_number / nvcnt 等结构体字段      │
 ├─────────────────────────────────────────┤
-│ BIOS 头 (0x600 字节)                     │  ← image_pack.py 写入
-│   preamble(0x55AA55AA) / head_len /     │
-│   code_hash / RSA 公钥区 / RSA 签名区 /  │
-│   magic_number / nvcnt ...              │
+│ 结构体后的文件区（至镜像偏移 0x2000）    │
+│   证书与签名位置由结构体中的偏移字段指定 │
 ├─────────────────────────────────────────┤
-│ 原始镜像数据                             │
-│   (从偏移 0x2000 开始)                    │
+│ 原始输入镜像区域（从偏移 0x2000 开始）    │
+│   ESBC 头（若有，256 字节）+ 原始镜像数据 │
 ├─────────────────────────────────────────┤
 │ CMS 签名区 (4K 对齐)                     │  ← 仅签名模式
 │   12B 头标识("cms"+长度) + p7s 签名数据  │
@@ -324,7 +320,7 @@ p7s 文件由 signatrust_client 生成在输入文件同目录，命名为 `输�
 | 区域 | 不签名模式 | 签名模式 |
 |------|-----------|----------|
 | ESBC 头 (256B) | 有（nvcnt 非空时） | 有（nvcnt 非空时） |
-| BIOS 头 (0x600B) | 有（基础参数：version/nvcnt/tag） | 有（完整参数：含 cms/ini/crl 路径） |
+| BIOS 头结构体 (0x600 字节) | 有（基础参数：version/nvcnt/tag） | 有（完整参数：含 cms/ini/crl 路径） |
 | 原始镜像数据 | 有 | 有 |
 | CMS 签名区 | 无 | 有（p7s detached 签名） |
 | ini 摘要区 | 无 | 有（SHA256 哈希值） |
@@ -361,21 +357,29 @@ p7s 文件由 signatrust_client 生成在输入文件同目录，命名为 `输�
 
 **幂等保护**：写入前检测文件头 4 字节是否为最终镜像 BIOS 头 preamble（`0x55aa55aa`），已完整加头的镜像跳过，避免整条流水线重复执行（`image_pack.py` 同款检测）。注意 ESBC 头自身的 magic（`0x3a3aaa33`，位于头内偏移 0x78，最终镜像中处于数据区）不参与该检测。
 
-### 5.3 BIOS 完整头字段布局（0x600 字节）
+### 5.3 BIOS 头结构体与文件偏移（`head_len=0x600`）
 
-由 `image_pack.py` 委托 `hi_platform/platform.py` 写入，包含完整的镜像描述信息：
+`hi_platform/platform.py` 用 `struct.Struct(...)` 打包的 BIOS 头结构体长度为 `0x600`（1536 字节），并将 `head_len` 字段设为 `0x600`。在本节所示的默认 `head_type=0`、未传 `-S`、`position=after_header` 布局中，结构体占文件偏移 `[0x0000, 0x0600)`；`0x600` 是结构体长度，不是证书、签名及镜像数据之前所有区域的总长度。下表偏移是该布局中的文件绝对偏移，不能据 `head_len` 将其判作越界：
 
 ```
-偏移 0x0000  preamble (0x55AA55AA)          — 头标识
-偏移 0x0004  head_len (0x600)               — 头长度
-偏移 0x0030  code_hash (32B SHA256)          — 镜像哈希
-偏移 0x0600  RSA 公钥区 (N + E 各 512B)      — RSA 证书
-偏移 0x0E00  RSA 签名区 (512B)               — RSA 签名
-偏移 0x2000  原始镜像数据                    — 镜像内容
-偏移 0x0580  magic_number + file_size        — 文件标识和大小
-偏移 0x0590  nvcnt_magic(0x5A5AA5A5) + nvcnt — 安全版本号
+结构体内字段的位置：
+偏移 0x0000  preamble (0x55AA55AA)                 — 头标识
+偏移 0x0018  head_len (0x600)                      — BIOS 头结构体长度
+偏移 0x0040  code_hash (32B SHA256)                 — 镜像哈希
+偏移 0x0580  magic_number + file_size              — 文件标识和大小
+偏移 0x0590  nvcnt_magic(0x5A5AA5A5) + nvcnt       — 安全版本号
+
+结构体内偏移字段的值（文件绝对偏移）：
+sub_key_cert_offset = 0x0600；sub_cert_len = 0x618 — 子密钥证书位置和长度
+sign_offset = 0x0E00；sign_len = 512              — RSA 签名区 [0x0E00, 0x1000)
+img_offset = 0x2000                               — 原始镜像数据起始位置
+
+文件区域：
+[0x1000, 0x2000)                                  — 不属于 0x600 字节结构体；本节不定义其内容
 文件尾部     CMS 签名(4K对齐) + ini(16K对齐) + CRL(2K对齐)
 ```
+
+`sub_key_cert_offset`、`sign_offset` 和 `img_offset` 是结构体内保存的文件绝对偏移值，不是这些字段本身在结构体中的存放位置。证书与签名指向的区域都在 `[0x0000, 0x0600)` 结构体之外；默认路径将原始输入镜像写到 `0x2000`，所以结构体结束与镜像起点之间还有文件区域，不能把它们合并称为 `0x600` 字节的“完整头”。`before_header` 和非默认 `head_type` 使用不同的偏移计算，本图仅说明上述默认布局。
 
 **尾部追加设计**：CMS 签名、ini 摘要、CRL 按各自的对齐要求追加在文件尾部，每个区块前有 12 字节的头标识（`"cms"`/`"ini"`/`"crl"` + 长度），便于提取工具定位。
 
@@ -513,7 +517,7 @@ CI 环境设置 `CRL_FILE_PATH` 可避免每目标重复下载；未设时 CRL �
 绑定 BIOS 基础头（version/nvcnt/tag）
     │
     ▼
-最终镜像（ESBC 头 + BIOS 基础头）
+最终镜像（BIOS 头结构体 + 前置文件区 + 原始输入镜像区域）
 ```
 
 ### 9.2 签名模式
@@ -539,10 +543,10 @@ CI 环境设置 `CRL_FILE_PATH` 可避免每目标重复下载；未设时 CRL �
 CRL → DER 格式转换
     │
     ▼
-绑定 BIOS 完整头（含 p7s 签名 + ini 摘要 + CRL）
+绑定 BIOS 头结构体及关联区域（含 p7s 签名 + ini 摘要 + CRL）
     │
     ▼
-最终镜像（ESBC 头 + BIOS 完整头 + CMS 签名 + ini 摘要 + CRL）
+最终镜像（BIOS 头结构体 + 前置文件区 + 原始输入镜像区域 + CMS 签名 + ini 摘要 + CRL）
     │
     ▼
 清理临时目录
