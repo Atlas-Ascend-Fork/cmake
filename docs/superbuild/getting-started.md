@@ -136,11 +136,11 @@ bash build.sh --pkgs=npu-runtime --build_host_only
 
 ## 自定义工具链
 
-内置 `toolchain/aarch64-hcc-toolchain.cmake` 用于 hcc 交叉编译 device 侧。如需使用 clang/LLVM 工具链，可指定 `--device-toolchain` 指向 `toolchain/aarch64-clang-toolchain.cmake`：
+内置 `toolchain/aarch64-hcc-toolchain.cmake` 用于 hcc 交叉编译 device 侧。如需使用 clang/LLVM 工具链，可指定 `--device-toolchain` 文件名 `aarch64-clang-toolchain.cmake`：
 
 ```bash
 bash build.sh --pkgs=npu-runtime \
-  --device-toolchain=cmake/toolchain/aarch64-clang-toolchain.cmake \
+  --device-toolchain=aarch64-clang-toolchain.cmake \
   --device-toolchain-dir=/usr/lib/llvm-15
 ```
 
