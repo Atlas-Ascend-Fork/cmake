@@ -2,10 +2,10 @@
 # -*- coding: UTF-8 -*-
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2026 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -21,12 +21,14 @@ import argparse
 
 def load_json_file(file_path: str) -> dict:
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError as e:
         raise FileNotFoundError(f"File not found: {file_path}") from e
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format: {file_path} (original error: {e.msg})") from e
+        raise ValueError(
+            f"Invalid JSON format: {file_path} (original error: {e.msg})"
+        ) from e
 
 
 def save_json_file(file_path: str, data: dict) -> None:
@@ -34,8 +36,8 @@ def save_json_file(file_path: str, data: dict) -> None:
     output_dir = os.path.dirname(file_path)
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
-    with open(file_path, 'w', encoding='utf-8') as f:
+
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -68,13 +70,18 @@ def merge_files(files: List[str], priority: str = "last") -> dict:
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base-file', help='Path to the base JSON file')
-    parser.add_argument('--update-file', help='Path to the JSON file to be merged')
-    parser.add_argument('--input-files', nargs='+', help='Batch merge multiple files')
-    parser.add_argument('--output-file', required=True, type=os.path.realpath,
-                        help='Path to the output JSON file after merging')
-    parser.add_argument('--priority', choices=['first', 'last'], default='last',
-                        help='Merge priority')
+    parser.add_argument("--base-file", help="Path to the base JSON file")
+    parser.add_argument("--update-file", help="Path to the JSON file to be merged")
+    parser.add_argument("--input-files", nargs="+", help="Batch merge multiple files")
+    parser.add_argument(
+        "--output-file",
+        required=True,
+        type=os.path.realpath,
+        help="Path to the output JSON file after merging",
+    )
+    parser.add_argument(
+        "--priority", choices=["first", "last"], default="last", help="Merge priority"
+    )
     args = parser.parse_args(argv)
     return args
 
@@ -85,16 +92,12 @@ def main(argv: List[str]) -> bool:
     if args.input_files:
         result = merge_files(args.input_files, args.priority)
     else:
-        # 加载基础文件和待合并文件
-        base_content = load_json_file(args.base_file)
-        update_content = load_json_file(args.update_file)
-        # 合并binList
-        result = merge_binlist(base_content, update_content)
+        result = merge_files([args.base_file, args.update_file], args.priority)
     # 保存结果
     save_json_file(args.output_file, result)
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if not main(sys.argv[1:]):
         sys.exit(1)
