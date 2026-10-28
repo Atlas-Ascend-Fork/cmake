@@ -753,30 +753,42 @@ def test_expand_dir_with_symlink(tmp_path: Path):
     # 在Windows上不能创建软链接，所以测试可能跳过
     try:
         link_file.symlink_to(target_file)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symbolic links are unavailable: {exc}")
 
-        fi = {
-            "value": "dst",
-            "src_path": str(tmp_path),
-            "dst_path": str(tmp_path),
-            "install_path": "",
-        }
+    fi = {
+        "value": "dst",
+        "src_path": str(tmp_path),
+        "dst_path": str(tmp_path),
+        "install_path": "",
+    }
 
-        def get_dst_target_func(info):
-            return str(base_dir)
+    def get_dst_target_func(info):
+        return str(base_dir)
 
-        env = pkg_parser.ParseEnv(
-            env_dict={},
-            parse_option=None,
-            pkg_config_dir=None,
-            delivery_dir=str(tmp_path),
-            package_attr={},
-        )
-        files, dirs = pkg_parser.expand_dir(fi, get_dst_target_func, env=env)
-        # 软链接应该被当作文件处理
-        assert len(files) > 0
-    except (OSError, NotImplementedError):
-        # Windows可能不支持软链接
-        pass
+    env = pkg_parser.ParseEnv(
+        env_dict={},
+        parse_option=None,
+        pkg_config_dir=None,
+        delivery_dir=str(tmp_path),
+        package_attr={},
+    )
+    files, dirs = pkg_parser.expand_dir(fi, get_dst_target_func, env=env)
+    # 软链接应该被当作文件处理
+    assert len(files) > 0
+
+
+def test_expand_dir_with_symlink_does_not_swallow_expand_dir_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """expand_dir的异常不能被软链接平台兼容处理吞掉。"""
+
+    def fail_expand_dir(*args, **kwargs):
+        raise OSError("injected expand_dir failure")
+
+    monkeypatch.setattr(pkg_parser, "expand_dir", fail_expand_dir)
+    with pytest.raises(OSError, match="injected expand_dir failure"):
+        test_expand_dir_with_symlink(tmp_path)
 
 
 def test_create_file_info_structure():
