@@ -11,4 +11,4 @@
 
 set -e
 
-rm -rf $(pwd)
+rm -rf -- "$(pwd)"
