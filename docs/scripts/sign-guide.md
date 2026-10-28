@@ -297,7 +297,7 @@ A: `scripts/signtool/esbc_header/` 目录不存在。确保 cmake 仓库完整�
 
 **Q: 镜像已有头，提示 "No need to add head again"**
 
-A: `esbc_header.py` 和 `image_pack.py` 会检测镜像头的 magic number（`0x55aa55aa`），已加头的镜像会被跳过。如需重新加头，先用 `ci_img_handler.py --rcvr` 提取原始镜像。
+A: `esbc_header.py` 和 `image_pack.py` 检测的均是**最终镜像 BIOS 头的 preamble（`0x55aa55aa`，位于文件开头 4 字节）**：完整走完加头流程的镜像重复执行流水线时两步均会跳过，实现流水线级幂等。注意该 magic 并非 ESBC 头的 magic——ESBC 头 magic 为 `0x3a3aaa33`，位于 ESBC 头内偏移 0x78（最终镜像中处于数据区），不参与文件头检测。如需重新加头，先用 `ci_img_handler.py --rcvr` 提取原始镜像。
 
 **Q: `sign_flag` 的三种行为分别是什么？**
 
