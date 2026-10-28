@@ -71,12 +71,12 @@ def generate_postinst(
             target = sym["target"]
             link = sym["link"]
             link_dir = f'$(dirname "{link}")'
-            lines.append(f'mkdir -p "$INSTALL_PATH"/{link_dir}')
+            lines.append(f'mkdir -p "$INSTALL_PATH/{link_dir}"')
             # 如果是EngineeringCommon模块，创建实体目录
             lines.append(
                 f'if [ "{module}" = "EngineeringCommon" -o "{module}" = "DevlibCommon" ]; then'
             )
-            lines.append(f'    mkdir -p "$INSTALL_PATH"/{target}')
+            lines.append(f'    mkdir -p "$INSTALL_PATH"/"{target}"')
             lines.append("fi")
             lines.append(
                 f'ln -sfnr "$INSTALL_PATH"/"{target}" "$INSTALL_PATH"/"{link}"'

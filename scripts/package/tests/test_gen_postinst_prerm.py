@@ -13,6 +13,7 @@
 
 import os
 import json
+import subprocess
 import pytest
 
 # 导入待测脚本模块
@@ -61,6 +62,56 @@ def _mock_generate_funcs(
 
     monkeypatch.setattr(gen_postinst_prerm, "generate_postinst", fake_postinst)
     monkeypatch.setattr(gen_postinst_prerm, "generate_prerm", fake_prerm)
+
+
+@pytest.mark.parametrize(
+    "module", ["NormalModule", "EngineeringCommon", "DevlibCommon"]
+)
+@pytest.mark.parametrize(
+    "link_folder,target_folder",
+    [
+        ("plain", "plain"),
+        ("folder with spaces", "folder with spaces"),
+        ("folder[xy]", "folder[xy]"),
+        ("普通 目录", "普通 目录"),
+        ("plain", "target with spaces"),
+    ],
+)
+def test_postinst_creates_literal_module_directories(
+    tmp_path, module, link_folder, target_folder
+):
+    """真实执行生成脚本的目录创建阶段，不运行 GNU ln 或安装包。"""
+    install_root = tmp_path / "install"
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    # 为 glob 展开提供匹配对象，确保必须创建元数据中的字面路径。
+    (install_root / "share/folderx").mkdir(parents=True)
+    (install_root / "data/folderx/target").mkdir(parents=True)
+    link = f"share/{link_folder}/link"
+    target = f"data/{target_folder}/target"
+    modules = {module: [{"target": target, "link": link}]}
+    script = gen_postinst_prerm.generate_postinst(
+        "cann-test", "9.0.0", modules, str(tmp_path)
+    )
+    script = script.replace(
+        'INSTALL_PATH="/usr/local/Ascend/cann-9.0.0"',
+        f'INSTALL_PATH="{install_root}"',
+        1,
+    )
+    # 后续 GNU ln -r 和特殊模块数据库维护不在本 Host 回归范围内。
+    directory_setup = script.split("ln -sfnr", 1)[0]
+    result = subprocess.run(
+        ["bash", "-c", directory_setup],
+        cwd=workspace,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (install_root / link).parent.is_dir()
+    if module in ("EngineeringCommon", "DevlibCommon"):
+        assert (install_root / target).is_dir()
+    assert list(workspace.iterdir()) == []
 
 
 class TestGenPostinstPrerm:
@@ -155,7 +206,7 @@ class TestGenPostinstPrerm:
             'if [ "EngineeringCommon" = "EngineeringCommon" '
             '-o "EngineeringCommon" = "DevlibCommon" ]; then'
         ) in result
-        assert 'mkdir -p "$INSTALL_PATH"/ops/kernel' in result
+        assert 'mkdir -p "$INSTALL_PATH"/"ops/kernel"' in result
 
     @staticmethod
     def test_generate_postinst_special_modules_db(tmp_path):
