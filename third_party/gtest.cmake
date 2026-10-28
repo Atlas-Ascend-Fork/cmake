@@ -46,6 +46,7 @@ find_library(GMOCK_STATIC_LIBRARY
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH
     PATHS ${GTEST_INSTALL_PATH}
+    NO_DEFAULT_PATH
 )
 
 find_library(GMOCK_MAIN_STATIC_LIBRARY
@@ -54,6 +55,7 @@ find_library(GMOCK_MAIN_STATIC_LIBRARY
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH
     PATHS ${GTEST_INSTALL_PATH}
+    NO_DEFAULT_PATH
 )
 
 include(FindPackageHandleStandardArgs)
@@ -117,6 +119,20 @@ else()
     )
 endif()
 
+# 缓存命中时使用find_library实际找到的库文件（兼容lib/lib64目录布局），
+# 重建场景使用ExternalProject固定安装的lib目录
+if(gtest_FOUND AND NOT FORCE_REBUILD_CANN_3RD)
+    set(GTEST_LIBRARY_PATH ${GTEST_STATIC_LIBRARY})
+    set(GTEST_MAIN_LIBRARY_PATH ${GTEST_MAIN_STATIC_LIBRARY})
+    set(GMOCK_LIBRARY_PATH ${GMOCK_STATIC_LIBRARY})
+    set(GMOCK_MAIN_LIBRARY_PATH ${GMOCK_MAIN_STATIC_LIBRARY})
+else()
+    set(GTEST_LIBRARY_PATH ${GTEST_INSTALL_PATH}/lib/libgtest.a)
+    set(GTEST_MAIN_LIBRARY_PATH ${GTEST_INSTALL_PATH}/lib/libgtest_main.a)
+    set(GMOCK_LIBRARY_PATH ${GTEST_INSTALL_PATH}/lib/libgmock.a)
+    set(GMOCK_MAIN_LIBRARY_PATH ${GTEST_INSTALL_PATH}/lib/libgmock_main.a)
+endif()
+
 set(GTEST_INCLUDE ${GTEST_INSTALL_PATH}/include)
 if(NOT EXISTS ${GTEST_INCLUDE})
     file(MAKE_DIRECTORY "${GTEST_INCLUDE}")
@@ -126,21 +142,28 @@ add_library(GTest::gtest STATIC IMPORTED GLOBAL)
 add_dependencies(GTest::gtest third_party_gtest)
 set_target_properties(GTest::gtest PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib/libgtest.a
+    IMPORTED_LOCATION ${GTEST_LIBRARY_PATH}
 )
 
 add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
 add_dependencies(GTest::gtest_main third_party_gtest)
 set_target_properties(GTest::gtest_main PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib/libgtest_main.a
+    IMPORTED_LOCATION ${GTEST_MAIN_LIBRARY_PATH}
 )
 
 add_library(GTest::gmock STATIC IMPORTED GLOBAL)
 add_dependencies(GTest::gmock third_party_gtest)
 set_target_properties(GTest::gmock PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib/libgmock.a
+    IMPORTED_LOCATION ${GMOCK_LIBRARY_PATH}
+)
+
+add_library(GTest::gmock_main STATIC IMPORTED GLOBAL)
+add_dependencies(GTest::gmock_main third_party_gtest)
+set_target_properties(GTest::gmock_main PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE}
+    IMPORTED_LOCATION ${GMOCK_MAIN_LIBRARY_PATH}
 )
 
 add_library(GTest::gmock_main STATIC IMPORTED GLOBAL)
