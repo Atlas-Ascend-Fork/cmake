@@ -17,7 +17,7 @@ import stat
 import sys
 import tempfile
 from collections import defaultdict
-from collections.abc import Callable
+from typing import Callable, Optional
 
 # ===================== 文件扩展名常量 =====================
 SOURCE_EXTENSIONS = (".c", ".cpp", ".cc")
@@ -54,6 +54,8 @@ PATTERN_INCLUDE_TOKEN = re.compile(r"#include\s*([<\"].*?[>\"])")
 
 # 源码原生无注释include行（用于fix替换，# 后允许空格或制表符）
 PATTERN_RAW_INCLUDE_TOKEN = re.compile(r"^\s*#[ \t]*include\s*([<\"].*?[>\"])")
+# remove建议行尾的行号范围注释: // lines 2-2（兼容单值 // lines 2）
+PATTERN_LINES_RANGE = re.compile(r"//\s*lines\s+(\d+)(?:\s*-\s*(\d+))?")
 # 脚本生成的注释冗余行 // [iwyu-fix] #include <...> 或 // [iwyu-fix] # include "..."
 IWYU_FIX_MARKER = "[iwyu-fix]"
 _IWYU_FIX_MARKER_ESCAPED = re.escape(IWYU_FIX_MARKER)
@@ -113,11 +115,83 @@ def build_remove_token_set(remove_lines: list[str]) -> set:
     return rm_token_set
 
 
-def annotate_lines(src_lines: list[str], rm_token_set: set) -> tuple[list[str], bool]:
-    """逐行注释冗余用户头文件，返回(新行列表, 是否变更)。"""
+def build_remove_token_map(remove_lines: list[str]) -> dict:
+    """从remove行提取{token: 行号范围列表或None}，行号来自// lines N-N注释。
+
+    无行号信息的token值为None（修复时退化为token全文匹配）；同一token多条
+    建议合并范围，任一条缺行号信息则整体退化为None。
+    """
+    token_map: dict = {}
+    for line in remove_lines:
+        tok = get_include_token(line)
+        if not tok:
+            continue
+        ranges = [
+            (int(m.group(1)), int(m.group(2) or m.group(1)))
+            for m in PATTERN_LINES_RANGE.finditer(line)
+        ]
+        if tok not in token_map:
+            token_map[tok] = ranges or None
+        elif not ranges or token_map[tok] is None:
+            token_map[tok] = None
+        else:
+            token_map[tok].extend(ranges)
+    return token_map
+
+
+def _in_ranges(lineno: int, ranges: list) -> bool:
+    """判断物理行号是否落在建议行号范围内。"""
+    return any(lo <= lineno <= hi for lo, hi in ranges)
+
+
+def _line_token(line: str) -> str:
+    """提取单行的include token，兼容原生include与脚本生成的注释行。"""
+    s_line = line.strip()
+    m_raw = PATTERN_RAW_INCLUDE_TOKEN.match(s_line)
+    if m_raw:
+        return m_raw.group(1)
+    m_marked = PATTERN_COMMENTED_INCLUDE.match(s_line)
+    if m_marked:
+        return m_marked.group(1)
+    return ""
+
+
+def _warn_mismatched_ranges(
+    src_lines: list[str], token_map: dict, fpath: Optional[str]
+) -> None:
+    """行号范围内找不到对应include时告警，避免使用过期日志误改源码。
+
+    范围内已存在脚本生成的注释行时视为行号有效（--fix幂等重跑场景）。
+    """
+    for tok, ranges in token_map.items():
+        if ranges is None:
+            continue
+        if not any(
+            _in_ranges(lineno, ranges) and _line_token(line) == tok
+            for lineno, line in enumerate(src_lines, start=1)
+        ):
+            ranges_str = ", ".join(f"{lo}-{hi}" for lo, hi in ranges)
+            logger.warning(
+                "[iwyu-fix] %s: 头文件 %s 的删除建议行号(%s)与源码不一致，"
+                "已跳过该头文件的自动修复，请重新生成IWYU日志",
+                fpath or "(未知文件)",
+                tok,
+                ranges_str,
+            )
+
+
+def annotate_lines_by_rules(
+    src_lines: list[str], token_map: dict, fpath: Optional[str] = None
+) -> tuple[list[str], bool]:
+    """按{token: 行号范围列表或None}逐行注释冗余用户头文件。
+
+    带行号范围的token仅注释范围内对应的include行，行号不匹配时不修改；
+    None（无行号信息）退化为token全文匹配。
+    """
+    _warn_mismatched_ranges(src_lines, token_map, fpath)
     changed = False
     new_lines = []
-    for line in src_lines:
+    for lineno, line in enumerate(src_lines, start=1):
         s_line = line.strip()
         if PATTERN_COMMENTED_INCLUDE.match(s_line):
             new_lines.append(line)
@@ -125,14 +199,21 @@ def annotate_lines(src_lines: list[str], rm_token_set: set) -> tuple[list[str], 
         m_tok = PATTERN_RAW_INCLUDE_TOKEN.match(s_line)
         if m_tok:
             inc_token = m_tok.group(1)
-            if inc_token in rm_token_set and not is_system_header(inc_token):
-                indent = line[: len(line) - len(line.lstrip())]
-                new_line = f"{indent}// {IWYU_FIX_MARKER} {s_line}\n"
-                new_lines.append(new_line)
-                changed = True
-                continue
+            if inc_token in token_map and not is_system_header(inc_token):
+                ranges = token_map[inc_token]
+                if ranges is None or _in_ranges(lineno, ranges):
+                    indent = line[: len(line) - len(line.lstrip())]
+                    new_line = f"{indent}// {IWYU_FIX_MARKER} {s_line}\n"
+                    new_lines.append(new_line)
+                    changed = True
+                    continue
         new_lines.append(line)
     return new_lines, changed
+
+
+def annotate_lines(src_lines: list[str], rm_token_set: set) -> tuple[list[str], bool]:
+    """逐行注释冗余用户头文件（旧接口：仅按token匹配，不感知行号）。"""
+    return annotate_lines_by_rules(src_lines, {tok: None for tok in rm_token_set})
 
 
 def strip_commented_lines(src_lines: list[str]) -> tuple[list[str], bool]:
@@ -174,12 +255,12 @@ def _process_file(
 
 
 def _make_annotate_fn(
-    rm_token_set: set,
+    token_map: dict, fpath: Optional[str] = None
 ) -> Callable[[list[str]], tuple[list[str], bool]]:
-    """创建绑定特定rm_token_set的annotate_lines闭包。"""
+    """创建绑定token_map与文件路径的annotate_lines_by_rules闭包。"""
 
     def _annotate(src_lines: list[str]) -> tuple[list[str], bool]:
-        return annotate_lines(src_lines, rm_token_set)
+        return annotate_lines_by_rules(src_lines, token_map, fpath=fpath)
 
     return _annotate
 
@@ -320,7 +401,11 @@ class IwyuLogParser:
         return "\n".join(report)
 
     def annotate_redundant_user_headers(self, *, dry_run: bool = False) -> list[str]:
-        """--fix：仅注释源文件内双引号冗余头文件，<>系统头文件跳过、头文件跳过。"""
+        """--fix：仅注释源文件内双引号冗余头文件，<>系统头文件跳过、头文件跳过。
+
+        删除建议带// lines N-N行号时仅注释指定物理行的include，行号与源码
+        不一致时跳过并告警；无行号信息时退化为token全文匹配。
+        """
         modified = []
         failed = []
         for fpath, data in self.file_data.items():
@@ -329,12 +414,14 @@ class IwyuLogParser:
             remove_lines = list(data["remove"])
             if not remove_lines or not os.path.exists(fpath):
                 continue
-            rm_token_set = build_remove_token_set(remove_lines)
-            if not rm_token_set:
+            rm_token_map = build_remove_token_map(remove_lines)
+            if not rm_token_map:
                 continue
             try:
                 changed = _process_file(
-                    fpath, dry_run=dry_run, transform_fn=_make_annotate_fn(rm_token_set)
+                    fpath,
+                    dry_run=dry_run,
+                    transform_fn=_make_annotate_fn(rm_token_map, fpath),
                 )
                 if changed:
                     modified.append(fpath)

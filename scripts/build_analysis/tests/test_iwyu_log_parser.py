@@ -16,7 +16,9 @@ import argparse
 import io
 import logging
 import os
+import shutil
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -29,7 +31,9 @@ from iwyu_log_parser import (
     IwyuLogParserError,
     IWYU_FIX_MARKER,
     annotate_lines,
+    annotate_lines_by_rules,
     atomic_write,
+    build_remove_token_map,
     build_remove_token_set,
     get_include_token,
     is_system_header,
@@ -194,6 +198,43 @@ class TestBuildRemoveTokenSet:
         assert result == set()
 
 
+# ===================== build_remove_token_map 测试 =====================
+
+
+class TestBuildRemoveTokenMap:
+    """build_remove_token_map 行号范围解析测试。"""
+
+    @staticmethod
+    def test_range_parsed() -> None:
+        lines = ['#include "a.h"  // lines 2-2']
+        assert build_remove_token_map(lines) == {'"a.h"': [(2, 2)]}
+
+    @staticmethod
+    def test_single_value_range() -> None:
+        lines = ['#include "a.h"  // lines 5']
+        assert build_remove_token_map(lines) == {'"a.h"': [(5, 5)]}
+
+    @staticmethod
+    def test_no_lines_info_is_none() -> None:
+        lines = ['#include "a.h"']
+        assert build_remove_token_map(lines) == {'"a.h"': None}
+
+    @staticmethod
+    def test_merge_ranges_same_token() -> None:
+        lines = ['#include "a.h"  // lines 2-2', '#include "a.h"  // lines 8-9']
+        assert build_remove_token_map(lines) == {'"a.h"': [(2, 2), (8, 9)]}
+
+    @staticmethod
+    def test_mixed_info_degrades_to_none() -> None:
+        lines = ['#include "a.h"  // lines 2-2', '#include "a.h"']
+        assert build_remove_token_map(lines) == {'"a.h"': None}
+
+    @staticmethod
+    def test_empty_and_non_include_lines() -> None:
+        assert build_remove_token_map([]) == {}
+        assert build_remove_token_map(["random text", ""]) == {}
+
+
 # ===================== annotate_lines 测试 =====================
 
 
@@ -258,6 +299,98 @@ class TestAnnotateLines:
     def test_empty_rm_set() -> None:
         src = ['#include "a.h"\n']
         new_lines, changed = annotate_lines(src, set())
+        assert changed is False
+        assert new_lines == src
+
+
+# ===================== annotate_lines_by_rules 行号感知测试（issue #22 回归） =====================
+
+
+class TestAnnotateLinesByRules:
+    """annotate_lines_by_rules 行号感知注释测试。"""
+
+    @staticmethod
+    def test_only_suggested_line_annotated() -> None:
+        """同名include多次出现时，仅注释建议行号指定的物理行。"""
+        src = ['#include "dup.h"\n', '#include "dup.h"\n', "int main();\n"]
+        token_map = {'"dup.h"': [(2, 2)]}
+        new_lines, changed = annotate_lines_by_rules(src, token_map)
+        assert changed is True
+        assert new_lines[0] == '#include "dup.h"\n'
+        assert new_lines[1] == f'// {IWYU_FIX_MARKER} #include "dup.h"\n'
+        assert new_lines[2] == "int main();\n"
+
+    @staticmethod
+    def test_range_spans_multiple_lines() -> None:
+        src = ['#include "a.h"\n', '#include "a.h"\n', '#include "a.h"\n']
+        token_map = {'"a.h"': [(2, 3)]}
+        new_lines, changed = annotate_lines_by_rules(src, token_map)
+        assert changed is True
+        assert new_lines[0] == '#include "a.h"\n'
+        assert new_lines[1].startswith(f"// {IWYU_FIX_MARKER}")
+        assert new_lines[2].startswith(f"// {IWYU_FIX_MARKER}")
+
+    @staticmethod
+    def test_out_of_range_occurrence_kept() -> None:
+        src = ['#include "a.h"\n', '#include "b.h"\n', '#include "a.h"\n']
+        token_map = {'"a.h"': [(3, 3)]}
+        new_lines, changed = annotate_lines_by_rules(src, token_map)
+        assert changed is True
+        assert new_lines[0] == '#include "a.h"\n'
+        assert new_lines[1] == '#include "b.h"\n'
+        assert new_lines[2].startswith(f"// {IWYU_FIX_MARKER}")
+
+    @staticmethod
+    def test_mismatched_range_skips_instead_of_token_match(
+        caplog: LogCaptureFixture,
+    ) -> None:
+        """行号与源码不一致时不退化为token全文匹配，避免误改同名include。"""
+        caplog.set_level(logging.WARNING)
+        src = [
+            '#include "a.h"\n',
+            "#include <stdio.h>\n",
+            '#include "a.h"\n',
+        ]
+        token_map = {'"a.h"': [(2, 2)]}
+        new_lines, changed = annotate_lines_by_rules(src, token_map)
+        assert changed is False
+        assert new_lines == src
+        assert "已跳过该头文件的自动修复" in caplog.text
+
+    @staticmethod
+    def test_none_range_matches_all() -> None:
+        src = ['#include "a.h"\n', '#include "a.h"\n']
+        new_lines, changed = annotate_lines_by_rules(src, {'"a.h"': None})
+        assert changed is True
+        assert all(line.startswith(f"// {IWYU_FIX_MARKER}") for line in new_lines)
+
+    @staticmethod
+    def test_already_commented_in_range_is_idempotent(
+        caplog: LogCaptureFixture,
+    ) -> None:
+        """范围内已是脚本注释行时视为有效（幂等重跑），不告警不改动。"""
+        caplog.set_level(logging.WARNING)
+        src = [
+            '#include "dup.h"\n',
+            f'// {IWYU_FIX_MARKER} #include "dup.h"\n',
+        ]
+        token_map = {'"dup.h"': [(2, 2)]}
+        new_lines, changed = annotate_lines_by_rules(src, token_map)
+        assert changed is False
+        assert new_lines == src
+        assert "跳过" not in caplog.text
+
+    @staticmethod
+    def test_system_header_skipped_even_in_range() -> None:
+        src = ["#include <b.h>\n"]
+        new_lines, changed = annotate_lines_by_rules(src, {"<b.h>": [(1, 1)]})
+        assert changed is False
+        assert new_lines == src
+
+    @staticmethod
+    def test_empty_map_no_change() -> None:
+        src = ['#include "a.h"\n']
+        new_lines, changed = annotate_lines_by_rules(src, {})
         assert changed is False
         assert new_lines == src
 
@@ -524,6 +657,27 @@ class TestAnnotateRedundantUserHeaders:
             content = f.read()
         assert content.startswith("  // ")
 
+    @staticmethod
+    def test_fix_duplicate_include_only_removes_suggested_line(
+        tmp_path: Path,
+    ) -> None:
+        """issue #22回归：同名重复include仅注释建议行号指定的那一行。"""
+        fpath = make_source_file(
+            tmp_path,
+            "dup.cpp",
+            '#include "dup.h"\n#include "dup.h"\nint main() { return value(); }\n',
+        )
+        log = f'{fpath} should remove these lines:\n- #include "dup.h"  // lines 2-2\n'
+        parser = IwyuLogParser()
+        parser.parse_log(log)
+        modified = parser.annotate_redundant_user_headers()
+        assert fpath in modified
+        with open(fpath, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        assert lines[0] == '#include "dup.h"'
+        assert lines[1] == f'// {IWYU_FIX_MARKER} #include "dup.h"'
+        assert lines[2] == "int main() { return value(); }"
+
 
 # ===================== clean_commented_lines 测试 =====================
 
@@ -756,7 +910,8 @@ class TestEndToEnd:
         fpath = make_source_file(tmp_path, "e2e.cpp", original)
         log_file = tmp_path / "e2e.log"
         log_file.write_text(
-            make_iwyu_log(tmp_path, fpath, remove=['#include "redundant.h"']),
+            f"{fpath} should remove these lines:\n"
+            '- #include "redundant.h"  // lines 2-2\n',
             encoding="utf-8",
         )
 
@@ -777,3 +932,54 @@ class TestEndToEnd:
         assert '#include "redundant.h"' not in after_clean
         assert "#include <stdio.h>" in after_clean
         assert '#include "needed.h"' in after_clean
+
+
+# ===================== issue #22 编译级回归测试 =====================
+
+_CXX_CANDIDATES = ("g++", "c++", "clang++")
+
+_CXX_MISSING = not any(shutil.which(cc) for cc in _CXX_CANDIDATES)
+
+
+class TestIssue22CompileRegression:
+    """issue #22场景回归：重复include修复后源码仍可通过语法编译。"""
+
+    @staticmethod
+    @pytest.mark.skipif(_CXX_MISSING, reason="环境中无C++编译器")
+    def test_fix_keeps_duplicate_include_compilable(tmp_path: Path) -> None:
+        (tmp_path / "dup.h").write_text(
+            "#pragma once\ninline int value() { return 1; }\n", encoding="utf-8"
+        )
+        fpath = make_source_file(
+            tmp_path,
+            "duplicate.cpp",
+            '#include "dup.h"\n#include "dup.h"\nint main() { return value(); }\n',
+        )
+        compiler = next(cc for cc in _CXX_CANDIDATES if shutil.which(cc) is not None)
+        before = subprocess.run(
+            [compiler, "-fsyntax-only", fpath],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert before.returncode == 0
+
+        log = f'{fpath} should remove these lines:\n- #include "dup.h"  // lines 2-2\n'
+        parser = IwyuLogParser()
+        parser.parse_log(log)
+        modified = parser.annotate_redundant_user_headers()
+        assert fpath in modified
+
+        after = subprocess.run(
+            [compiler, "-fsyntax-only", fpath],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert after.returncode == 0
+        with open(fpath, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        assert lines[0] == '#include "dup.h"'
+        assert lines[1] == f'// {IWYU_FIX_MARKER} #include "dup.h"'
