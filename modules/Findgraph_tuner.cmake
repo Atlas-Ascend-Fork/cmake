@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -66,7 +66,6 @@ find_package_handle_standard_args(graph_tuner
 
 if(graph_tuner_FOUND)
     set(graph_tuner_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
-    include(CMakePrintHelpers)
     message(STATUS "Variables in graph_tuner module:")
     cmake_print_variables(graph_tuner_INCLUDE_DIR)
     cmake_print_variables(graph_tuner_SHARED_LIBRARY)
@@ -83,7 +82,6 @@ if(graph_tuner_FOUND)
         INTERFACE_INCLUDE_DIRECTORIES "${graph_tuner_INCLUDE_DIR};${graph_tuner_INCLUDE_DIR}/graph_tuner"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS graph_tuner
         PROPERTIES INTERFACE_LINK_LIBRARIES IMPORTED_LINK_DEPENDENT_LIBRARIES IMPORTED_LOCATION
     )

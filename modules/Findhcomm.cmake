@@ -103,14 +103,13 @@ if(hcomm_FOUND)
         if(EXISTS ${_CANN_HCOMM_PKG_INCLUDE_DIR}/hcomm/ccu)
             list(APPEND _INCLUDE_DIRS "${_CANN_HCOMM_PKG_INCLUDE_DIR}/hcomm/ccu")
         endif()
-        
+
         add_library(hcomm_headers INTERFACE IMPORTED)
         set_target_properties(hcomm_headers PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${_INCLUDE_DIRS}"
         )
     endif()
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS hcomm
         PROPERTIES INTERFACE_LINK_LIBRARIES IMPORTED_LINK_DEPENDENT_LIBRARIES IMPORTED_LOCATION
     )

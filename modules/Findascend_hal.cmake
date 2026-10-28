@@ -89,7 +89,6 @@ if(ascend_hal_FOUND)
         IMPORTED_LOCATION "${_CANN_ascend_hal_SHARED_LIBRARY}"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS ascend_hal_headers
         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
     )

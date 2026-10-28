@@ -11,8 +11,6 @@
 
 include(${CMAKE_CURRENT_LIST_DIR}/pkg_func.cmake)
 
-include(CMakePrintHelpers)
-
 set(CMAKE_SYSTEM_PROCESSOR ${CPACK_TARGET_ARCH})
 # 设置 makeself 路径
 set(MAKESELF_EXE ${CPACK_MAKESELF_PATH}/makeself.sh)

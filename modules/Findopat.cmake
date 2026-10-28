@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ find_library(cann_kb_SHARED_LIBRARY
     NO_CMAKE_FIND_ROOT_PATH)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(opat
+find_package_handle_standard_args(opa
     FOUND_VAR
         opat_FOUND
     REQUIRED_VARS
@@ -66,7 +66,6 @@ find_package_handle_standard_args(opat
 
 if(opat_FOUND)
     set(opat_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
-    include(CMakePrintHelpers)
     message(STATUS "Variables in opat module:")
     cmake_print_variables(opat_INCLUDE_DIR)
     cmake_print_variables(cann_kb_SHARED_LIBRARY)
@@ -83,7 +82,6 @@ if(opat_FOUND)
         INTERFACE_INCLUDE_DIRECTORIES "${opat_INCLUDE_DIR};${opat_INCLUDE_DIR}/opat"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS cann_kb
         PROPERTIES INTERFACE_LINK_LIBRARIES IMPORTED_LINK_DEPENDENT_LIBRARIES IMPORTED_LOCATION
     )

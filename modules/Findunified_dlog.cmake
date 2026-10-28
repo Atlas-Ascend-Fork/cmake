@@ -76,7 +76,6 @@ find_package_handle_standard_args(unified_dlog
 
 if(unified_dlog_FOUND)
     set(unified_dlog_INCLUDE_DIR "${_INCLUDE_DIR_DLOG_PUB}")
-    include(CMakePrintHelpers)
     message(STATUS "Variables in unified_dlog module:")
     cmake_print_variables(unified_dlog_INCLUDE_DIR)
     cmake_print_variables(unified_dlog_SHARED_LIBRARY)
@@ -97,7 +96,6 @@ if(unified_dlog_FOUND)
         INTERFACE_INCLUDE_DIRECTORIES "${unified_dlog_INCLUDE_DIR}"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS unified_dlog
         PROPERTIES INTERFACE_LINK_LIBRARIES IMPORTED_LOCATION
     )

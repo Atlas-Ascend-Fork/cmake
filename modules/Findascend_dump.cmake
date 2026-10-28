@@ -33,7 +33,6 @@ if(ascend_dump_FOUND)
         IMPORTED_LOCATION "${_CANN_ascend_dump_SHARED_LIBRARY}"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS ascend_dump
         PROPERTIES IMPORTED_LOCATION
     )

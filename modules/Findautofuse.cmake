@@ -46,7 +46,6 @@ if(autofuse_FOUND)
     set_target_properties(autofuse_headers PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${_CANN_AUTOFUSE_CONFIG_INCLUDE_DIR};${_CANN_AUTOFUSE_ATTRS_INCLUDE_DIR};${_CANN_AUTOFUSE_ASCENDIR_INCLUDE_DIR}"
     )
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS autofuse_headers
         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
     )

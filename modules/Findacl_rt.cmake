@@ -46,7 +46,6 @@ if(acl_rt_FOUND)
         IMPORTED_LOCATION "${_CANN_acl_rt_SHARED_LIBRARY}"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS acl_rt_headers
         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
     )

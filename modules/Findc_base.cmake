@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -66,7 +66,6 @@ find_package_handle_standard_args(c_base
 )
 
 if(c_base_FOUND)
-    include(CMakePrintHelpers)
     message(STATUS "Variables in c_base module:")
     cmake_print_variables(c_base_STATIC_LIBRARY)
     cmake_print_variables(c_json_STATIC_LIBRARY)
@@ -83,7 +82,6 @@ if(c_base_FOUND)
         IMPORTED_LOCATION "${c_json_STATIC_LIBRARY}"
     )
 
-    include(CMakePrintHelpers)
     cmake_print_properties(TARGETS c_base_static
         PROPERTIES INTERFACE_LINK_LIBRARIES IMPORTED_LOCATION
     )
