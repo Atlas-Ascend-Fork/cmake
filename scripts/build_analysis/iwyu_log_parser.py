@@ -17,7 +17,7 @@ import stat
 import sys
 import tempfile
 from collections import defaultdict
-from typing import Callable
+from collections.abc import Callable
 
 # ===================== 文件扩展名常量 =====================
 SOURCE_EXTENSIONS = (".c", ".cpp", ".cc")
@@ -341,6 +341,8 @@ class IwyuLogParser:
             except IwyuLogParserError as e:
                 failed.append((fpath, str(e)))
         _log_failed_files(failed)
+        if failed:
+            raise IwyuLogParserError(f"{len(failed)} 个文件处理失败")
         return modified
 
     def _parse_line(self, line: str, strip_line: str) -> None:
@@ -474,6 +476,7 @@ def _save_report(report_text: str, report_out: str) -> None:
         logger.info("报告已保存至: %s", report_out)
     except OSError as e:
         logger.error("保存报告失败: %s: %s", report_out, e)
+        raise IwyuLogParserError(f"保存报告失败: {report_out}: {e}") from e
 
 
 def _run_fix(parser: IwyuLogParser, *, dry_run: bool) -> None:
