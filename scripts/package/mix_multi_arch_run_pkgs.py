@@ -58,10 +58,11 @@ class SceneInfo(NamedTuple):
 
 def remove(path: str):
     """删除文件或目录。"""
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-    elif os.path.islink(path):
+    # isdir 会跟随目录软链接，先删除链接本身，保留其目标。
+    if os.path.islink(path):
         os.remove(path)
+    elif os.path.isdir(path):
+        shutil.rmtree(path)
     elif os.path.isfile(path):
         os.remove(path)
 
