@@ -18,7 +18,7 @@ else()
     set(RE2_PKG_PATH ${CANN_3RD_LIB_PATH}/pkg)
 endif()
 
-set(RE2_FILE ${RE2_INSTALL_PATH}/re2.h)
+set(RE2_FILE ${RE2_INSTALL_PATH}/re2/re2.h)
 if (EXISTS ${RE2_FILE})
     message(STATUS "[ThirdParty][re2] re2.h found.")
     add_custom_target(re2_build)

@@ -38,7 +38,11 @@ def get_args():
         "--rcvr", help="recover the raw img without header", action="store_true"
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.rcvr and args.raw is None:
+        parser.error("argument -raw is required when --rcvr is specified")
+
+    return args
 
 
 def __write_raw_img(raw, img, code_len, max_copy_size):
