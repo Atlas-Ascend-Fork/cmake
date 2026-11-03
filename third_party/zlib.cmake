@@ -11,6 +11,7 @@ include_guard(GLOBAL)
 include(ExternalProject)
 
 set(ZLIB_INSTALL_DIR ${CANN_3RD_LIB_PATH}/lib_cache/zlib)
+set(ZLIB_PATCH_PATH ${CANN_3RD_LIB_PATH}/patch CACHE INTERNAL "zlib patch dir")
 set(ZLIB_INCLUDE_DIR ${ZLIB_INSTALL_DIR}/include)
 if(NOT EXISTS ${ZLIB_INCLUDE_DIR})
     file(MAKE_DIRECTORY "${ZLIB_INCLUDE_DIR}")
@@ -52,15 +53,40 @@ endif()
 if(EXISTS "${REQ_URL}")
     message(STATUS "[ThirdParty][zlib] ${REQ_URL} found.")
 endif()
+if(EXISTS "${CANN_3RD_LIB_PATH}/zlib/backport-CVE-2026-27171.patch")
+    set(ZLIB_CVE_PATCH_FILE ${CANN_3RD_LIB_PATH}/zlib/backport-CVE-2026-27171.patch)
+    add_custom_target(zlib_cve_patch)
+elseif(EXISTS ${ZLIB_PATCH_PATH}/backport-CVE-2026-27171.patch)
+    set(ZLIB_CVE_PATCH_FILE ${ZLIB_PATCH_PATH}/backport-CVE-2026-27171.patch)
+    add_custom_target(zlib_cve_patch)
+else()
+    # 路径不能与 zlib 源码目录相同,构建时会清理
+    set(ZLIB_CVE_PATCH_FILE ${ZLIB_PATCH_PATH}/backport-CVE-2026-27171.patch)
+    ExternalProject_Add(zlib_cve_patch
+        URL "https://gitcode.com/cann-src-third-party/zlib/releases/download/v1.2.13-h0/backport-CVE-2026-27171.patch"
+        URL_HASH SHA256=c4919c8230fc890c95f3b435b90a1c85c0bbb6e78917ec1e7e027396c9993635
+        DOWNLOAD_DIR ${ZLIB_PATCH_PATH}
+        DOWNLOAD_NO_EXTRACT TRUE
+        DOWNLOAD_NO_PROGRESS TRUE
+        TIMEOUT 60
+        EXCLUDE_FROM_ALL TRUE
+    )
+    message(STATUS "[ThirdParty][zlib] cve patch need download to: ${ZLIB_CVE_PATCH_FILE}")
+endif()
+if(TARGET zlib_cve_patch)
+    message(STATUS "[ThirdParty][zlib] cve patch use cache: ${ZLIB_CVE_PATCH_FILE}")
+endif()
+
 ExternalProject_Add(zlib_src
     URL ${REQ_URL}
     URL_HASH ${ZLIB_URL_HASH}
     TIMEOUT 300
-    PATCH_COMMAND patch --forward --batch --quiet -r - -p1 < ${CMAKE_CURRENT_LIST_DIR}/patch/zlib_add_minizip_static_lib.patch
+    PATCH_COMMAND patch --forward --batch --quiet -r - -p1 < ${CMAKE_CURRENT_LIST_DIR}/patch/zlib_add_minizip_static_lib.patch && patch --forward --batch --quiet -r - -p1 < ${ZLIB_CVE_PATCH_FILE}
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     EXCLUDE_FROM_ALL TRUE
+    DEPENDS zlib_cve_patch
 )
 ExternalProject_Get_Property(zlib_src SOURCE_DIR)
 set(ZLIB_SRC_DIR ${SOURCE_DIR})
