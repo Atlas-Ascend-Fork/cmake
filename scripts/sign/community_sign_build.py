@@ -98,7 +98,7 @@ def prepare_crl(crl_output_dir: str = "") -> Optional[str]:
     # 确保输出目录存在，避免 curl 因目录不存在而重试 3 次后才报错
     os.makedirs(output_dir, exist_ok=True)
     crl_path = os.path.join(output_dir, CRL_FILENAME)
-    cmd = ["curl", "-sSL", CRL_DOWNLOAD_URL, "-o", crl_path]
+    cmd = ["curl", "--fail", "-sSL", CRL_DOWNLOAD_URL, "-o", crl_path]
     logger.info("execute:%s", " ".join(cmd))
 
     # check=False：curl 失败时通过 returncode 判断，统一在循环中重试
