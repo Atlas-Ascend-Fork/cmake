@@ -69,6 +69,10 @@ else()
         DOWNLOAD_NO_EXTRACT TRUE
         DOWNLOAD_NO_PROGRESS TRUE
         TIMEOUT 60
+        UPDATE_COMMAND ""
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
         EXCLUDE_FROM_ALL TRUE
     )
     message(STATUS "[ThirdParty][zlib] cve patch need download to: ${ZLIB_CVE_PATCH_FILE}")
