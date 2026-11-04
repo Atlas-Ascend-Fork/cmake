@@ -21,47 +21,53 @@ from typing import Iterator, List, NamedTuple, Optional
 
 class Receiver(NamedTuple):
     """消息接收器。"""
+
     warn_msgs: List[str]
     err_msgs: List[str]
 
 
 def parse_version_line(line: str) -> str:
     """解析版本行。"""
-    version = line.strip().split('=', maxsplit=1)[1]
-    return version.split('-')[0]
+    version = line.strip().split("=", maxsplit=1)[1]
+    return version.split("-")[0]
 
 
 def get_version_info_path(ascend_install_path: str, name: str) -> str:
     """获取version.info文件路径。"""
-    return os.path.join(ascend_install_path, 'share', 'info', name, 'version.info')
+    return os.path.join(ascend_install_path, "share", "info", name, "version.info")
 
 
-def read_pkg_version(recv: Receiver, ascend_install_path: str, name: str) -> Optional[str]:
+def read_pkg_version(
+    recv: Receiver, ascend_install_path: str, name: str
+) -> Optional[str]:
     """读取包版本。"""
-    if name in ['acl-extend', 'graph-autofusion']:
-        filepath = get_version_info_path(ascend_install_path, name.replace('-', '_'))
+    if name in ["acl-extend", "graph-autofusion"]:
+        filepath = get_version_info_path(ascend_install_path, name.replace("-", "_"))
         if not os.path.isfile(filepath):
             filepath = get_version_info_path(ascend_install_path, name)
     else:
         filepath = get_version_info_path(ascend_install_path, name)
 
     if not os.path.isfile(filepath):
-        recv.err_msgs.append(f'{filepath} does not exist in read_pkg_version!')
+        recv.err_msgs.append(f"{filepath} does not exist in read_pkg_version!")
         return None
 
-    with open(filepath, encoding='utf-8') as file:
+    with open(filepath, encoding="utf-8") as file:
         for line in file:
-            if line.startswith('Version='):
+            if line.startswith("Version="):
                 return parse_version_line(line)
 
-    recv.err_msgs.append(f'The version field was not found in {filepath} in read_pkg_version!')
+    recv.err_msgs.append(
+        f"The version field was not found in {filepath} in read_pkg_version!"
+    )
     return None
 
 
 def check_build_dep_item(version: str, dep: str) -> bool:
     """检查构建依赖项。"""
+
     def split_version(version: str) -> List[int]:
-        return [int(num) for num in version.split('.')]
+        return [int(num) for num in version.split(".")]
 
     def check_ge() -> bool:
         for req, rel in zip(dep_parts, version_parts):
@@ -103,16 +109,16 @@ def check_build_dep_item(version: str, dep: str) -> bool:
 
     version_parts = split_version(version)
 
-    if dep.startswith('>='):
+    if dep.startswith(">="):
         dep = dep[2:]
         check_func = check_ge
-    elif dep.startswith('>'):
+    elif dep.startswith(">"):
         dep = dep[1:]
         check_func = check_gt
-    elif dep.startswith('<='):
+    elif dep.startswith("<="):
         dep = dep[2:]
         check_func = check_le
-    elif dep.startswith('<'):
+    elif dep.startswith("<"):
         dep = dep[1:]
         check_func = check_lt
     else:
@@ -121,6 +127,9 @@ def check_build_dep_item(version: str, dep: str) -> bool:
     dep_parts = split_version(dep)
 
     if check_func is check_eq:
+        # 短依赖仍按前缀匹配；安装版本缺失的显式组件按 0 比较。
+        if len(version_parts) < len(dep_parts):
+            version_parts.extend([0] * (len(dep_parts) - len(version_parts)))
         return check_func()
 
     if len(dep_parts) < len(version_parts):
@@ -133,26 +142,26 @@ def check_build_dep_item(version: str, dep: str) -> bool:
 
 def check_build_dep(version: str, dep_info: str) -> bool:
     """检查构建依赖。"""
+
     def check_range(dep: str, deps_iter: Iterator[str]) -> bool:
         result = check_build_dep_item(version, dep)
         for dep in deps_iter:
-            if dep.startswith('<') or dep.startswith('<='):
+            if dep.startswith("<") or dep.startswith("<="):
                 return result and check_build_dep_item(version, dep)
             result &= check_build_dep_item(version, dep)
         return result
 
-    deps = [dep.strip() for dep in dep_info.split(',')]
+    deps = [dep.strip() for dep in dep_info.split(",")]
     deps_iter = iter(deps)
 
     for dep in deps_iter:
-        if dep.startswith('>=') or dep.startswith('>'):
+        if dep.startswith(">=") or dep.startswith(">"):
             result = check_range(dep, deps_iter)
         else:
             result = check_build_dep_item(version, dep)
         if result:
             return True
     return False
-
 
 
 def check_build_deps(recv: Receiver, ascend_install_path: str, deps: list):
@@ -165,24 +174,28 @@ def check_build_deps(recv: Receiver, ascend_install_path: str, deps: list):
             continue
         try:
             if not check_build_dep(version, dep_info):
-                warn_msg = 'Check build dependency failed! ' \
-                          f'Required {dep_pkg} version is {dep_info}, but {dep_pkg} version is {version}.'
+                warn_msg = (
+                    "Check build dependency failed! "
+                    f"Required {dep_pkg} version is {dep_info}, but {dep_pkg} version is {version}."
+                )
                 recv.warn_msgs.append(warn_msg)
         except ValueError:
-            err_msg = f'Check build dependency error! version is {version}, dep_info is {dep_info}.'
+            err_msg = f"Check build dependency error! version is {version}, dep_info is {dep_info}."
             recv.err_msgs.append(err_msg)
 
 
 def main():
     """主流程。"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('ascend_install_path', help='Ascend install path.')
-    parser.add_argument('deps', nargs='*', help='Dependency informations.')
+    parser.add_argument("ascend_install_path", help="Ascend install path.")
+    parser.add_argument("deps", nargs="*", help="Dependency informations.")
     args = parser.parse_args()
 
-    logging.basicConfig(format=f'{os.path.basename(__file__)}: %(levelname)s: %(message)s')
+    logging.basicConfig(
+        format=f"{os.path.basename(__file__)}: %(levelname)s: %(message)s"
+    )
     if len(args.deps) % 2 != 0:
-        logging.error('The deps argument must contain an even number of elements!')
+        logging.error("The deps argument must contain an even number of elements!")
         return False
 
     recv = Receiver([], [])
@@ -200,6 +213,6 @@ def main():
     return True
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     if not main():
         sys.exit(1)
