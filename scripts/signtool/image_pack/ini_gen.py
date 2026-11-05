@@ -64,9 +64,9 @@ def gen_ini():
         print("error in input xml file")
     if args.hash_list:
         # 防止路径遍历攻击：归一化路径并校验位于预期目录下
-        hash_dest = os.path.abspath(args.hash_list_path)
+        hash_dest = os.path.realpath(args.hash_list_path)
         base_dir = os.path.dirname(os.path.realpath(args.inFilePath))
-        if not os.path.abspath(hash_dest).startswith(os.path.abspath(base_dir)):
+        if os.path.commonpath([hash_dest, base_dir]) != base_dir:
             raise ValueError(f"hash_dest must be within base directory: {base_dir}")
         hash_list_path = os.path.join(hash_dest, ('{}.img'.format('hash-list')))
         if (os.path.exists(hash_list_path)) :
