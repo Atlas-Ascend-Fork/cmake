@@ -204,8 +204,11 @@ def config_feature_to_string(features: Set[str]) -> str:
 def is_subdirectory(base: str, sub: str) -> bool:
     """是否为子目录。"""
     try:
-        base = os.path.normpath(base)
-        sub = os.path.normpath(sub)
+        # 保留混合绝对/相对路径的拒绝行为，不解析符号链接。
+        if os.path.isabs(base) != os.path.isabs(sub):
+            return False
+        base = os.path.abspath(base)
+        sub = os.path.abspath(sub)
         return os.path.commonpath([base, sub]) == base
     except ValueError:
         return False
