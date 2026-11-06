@@ -539,6 +539,8 @@ function(set_cann_cpack_config component)
     )
 
     __cann_append_global_property(CPACK_COMPONENTS_ALL "${component}")
+    # 组件在不同目录中声明，后续重新生成 CPack 配置时仍需读取各自的运行依赖。
+    set_property(GLOBAL PROPERTY CANN_CPACK_RUN_DEPS_${component} "${CANN_VERSION_${component}_RUN_DEPS}")
 
     if(CANN_OUTPUT)
         if(ENABLE_UNIFIED_BUILD)
@@ -607,7 +609,7 @@ function(set_cann_cpack_config component)
 
         # 获取当前组件的依赖配对列表 (pkg;version;pkg;version;...)
         # 同一源码仓库（如 air）可定义多个 set_cann_package，必须按组件隔离依赖，避免并集污染。
-        set(_RUN_DEPS_PAIRS "${CANN_VERSION_${component}_RUN_DEPS}")
+        get_property(_RUN_DEPS_PAIRS GLOBAL PROPERTY CANN_CPACK_RUN_DEPS_${component})
         # 转换为 "pkg version" 格式列表
         set(COMPONENT_RUN_DEPS "")
         while(_RUN_DEPS_PAIRS)

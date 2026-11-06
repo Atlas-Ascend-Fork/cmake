@@ -55,6 +55,7 @@ pre-commit run --all-files  # manual full-repo check
 - **ABI:** `CANN_CXX11_ABI` is computed once in `init_cann_project()` (`function/prepare.cmake`) and consumed by `intf_pub` + all third-party scripts. Host defaults to `_GLIBCXX_USE_CXX11_ABI=0` (old ABI); device defaults to `1`. `USE_CXX11_ABI` overrides either. See `intf_pub/intf_pub_linux.cmake:57`.
 - **ccache** is on by default (`ENABLE_CCACHE`).
 - **Dependency pairs are stride-2 lists:** `set_cann_build_dependencies`/`set_cann_run_dependencies` append `pkg;version` pairs to `CANN_VERSION_*_BUILD_DEPS`/`_RUN_DEPS`. Consumers (`get_build_pkg_deps` in `function/function.cmake`, `scripts/version/generate_version_info.py`) walk the list 2 at a time, so changing the call format requires updating both (flagged in code comments).
+- `set_cann_cpack_config` 将当前组件的运行依赖保存在全局属性 `CANN_CPACK_RUN_DEPS_<component>` 中；后续兄弟目录重新生成 CPack 配置时按组件读取。运行依赖须在对应组件的打包配置调用之前声明，同一组件再次调用时更新其依赖记录。
 - **Never set `EXCLUDE_FROM_ALL` on `add_subdirectory`** — CMake then skips that dir's `install()` rules, silently dropping components from packages. `set_cann_all_targets` (`function/function.cmake:182`) instead marks individual *targets* `EXCLUDE_FROM_ALL` and aggregates wanted ones under `cann_all_targets`; the `add_subdirectory` calls in `superbuild/CMakeLists.txt:67` deliberately omit it for the same reason.
 
 ## Public API consumed by CANN repos
