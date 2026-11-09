@@ -290,7 +290,12 @@ class MixCommand:
         parser = subparsers.add_parser("mix")
         parser.add_argument("pkgs", nargs="+")
         parser.add_argument("--arch", nargs="+")
-        parser.add_argument("--makeself", required=True, help="Path of makeself tool.")
+        parser.add_argument(
+            "--makeself",
+            required=True,
+            type=os.path.realpath,
+            help="Path of makeself tool.",
+        )
         parser.add_argument(
             "--clean",
             action="store_true",
