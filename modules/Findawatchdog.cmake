@@ -44,7 +44,7 @@ unset(_cmake_targets_defined)
 unset(_cmake_targets_not_defined)
 unset(_cmake_expected_targets)
 
-find_path(_INCLUDE_DIR
+find_path(_CANN_AWATCHDOG_INCLUDE_DIR
     NAMES ../pkg_inc/watchdog/awatchdog.h
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH)
@@ -60,12 +60,12 @@ find_package_handle_standard_args(awatchdog
     FOUND_VAR
         awatchdog_FOUND
     REQUIRED_VARS
-        _INCLUDE_DIR
+        _CANN_AWATCHDOG_INCLUDE_DIR
         awatchdog_SHARED_LIBRARY
 )
 
 if(awatchdog_FOUND)
-    set(awatchdog_INCLUDE_DIR "${_INCLUDE_DIR}/../pkg_inc")
+    set(awatchdog_INCLUDE_DIR "${_CANN_AWATCHDOG_INCLUDE_DIR}/../pkg_inc")
     message(STATUS "Variables in awatchdog module:")
     cmake_print_variables(awatchdog_INCLUDE_DIR)
     cmake_print_variables(awatchdog_SHARED_LIBRARY)
@@ -91,4 +91,4 @@ if(awatchdog_FOUND)
 endif()
 
 # Cleanup temporary variables.
-set(_INCLUDE_DIR)
+set(_CANN_AWATCHDOG_INCLUDE_DIR)

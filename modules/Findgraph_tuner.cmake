@@ -44,7 +44,7 @@ unset(_cmake_targets_defined)
 unset(_cmake_targets_not_defined)
 unset(_cmake_expected_targets)
 
-find_path(_INCLUDE_DIR
+find_path(_CANN_GRAPH_TUNER_INCLUDE_DIR
     NAMES experiment/graph_tuner/graph_tuner_errorcode.h
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH)
@@ -60,12 +60,12 @@ find_package_handle_standard_args(graph_tuner
     FOUND_VAR
         graph_tuner_FOUND
     REQUIRED_VARS
-        _INCLUDE_DIR
+        _CANN_GRAPH_TUNER_INCLUDE_DIR
         graph_tuner_SHARED_LIBRARY
 )
 
 if(graph_tuner_FOUND)
-    set(graph_tuner_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
+    set(graph_tuner_INCLUDE_DIR "${_CANN_GRAPH_TUNER_INCLUDE_DIR}/experiment")
     message(STATUS "Variables in graph_tuner module:")
     cmake_print_variables(graph_tuner_INCLUDE_DIR)
     cmake_print_variables(graph_tuner_SHARED_LIBRARY)
@@ -91,4 +91,4 @@ if(graph_tuner_FOUND)
 endif()
 
 # Cleanup temporary variables.
-set(_INCLUDE_DIR)
+set(_CANN_GRAPH_TUNER_INCLUDE_DIR)

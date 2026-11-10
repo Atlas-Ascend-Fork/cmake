@@ -13,7 +13,7 @@ if (c_mmpa_FOUND)
     return()
 endif()
 
-find_path(_INCLUDE_DIR
+find_path(_CANN_C_MMPA_INCLUDE_DIR
     NAMES experiment/c_mmpa/mmpa_api.h
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH)
@@ -23,11 +23,11 @@ find_package_handle_standard_args(c_mmpa
     FOUND_VAR
         c_mmpa_FOUND
     REQUIRED_VARS
-        _INCLUDE_DIR
+        _CANN_C_MMPA_INCLUDE_DIR
 )
 
 if(c_mmpa_FOUND)
-    set(c_mmpa_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
+    set(c_mmpa_INCLUDE_DIR "${_CANN_C_MMPA_INCLUDE_DIR}/experiment")
     message(STATUS "Variables in c_mmpa module:")
     cmake_print_variables(c_mmpa_INCLUDE_DIR)
 
@@ -44,4 +44,4 @@ if(c_mmpa_FOUND)
 endif()
 
 # Cleanup temporary variables.
-set(_INCLUDE_DIR)
+set(_CANN_C_MMPA_INCLUDE_DIR)

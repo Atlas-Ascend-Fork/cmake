@@ -44,7 +44,7 @@ unset(_cmake_targets_defined)
 unset(_cmake_targets_not_defined)
 unset(_cmake_expected_targets)
 
-find_path(_INCLUDE_DIR
+find_path(_CANN_OPCOMPILER_INCLUDE_DIR
     NAMES experiment/opcompiler/tensor_engine/fusion_api.h
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH)
@@ -60,12 +60,12 @@ find_package_handle_standard_args(opcompiler
     FOUND_VAR
         opcompiler_FOUND
     REQUIRED_VARS
-        _INCLUDE_DIR
+        _CANN_OPCOMPILER_INCLUDE_DIR
         te_fusion_SHARED_LIBRARY
 )
 
 if(opcompiler_FOUND)
-    set(opcompiler_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
+    set(opcompiler_INCLUDE_DIR "${_CANN_OPCOMPILER_INCLUDE_DIR}/experiment")
     message(STATUS "Variables in opcompiler module:")
     cmake_print_variables(opcompiler_INCLUDE_DIR)
     cmake_print_variables(te_fusion_SHARED_LIBRARY)
@@ -91,4 +91,4 @@ if(opcompiler_FOUND)
 endif()
 
 # Cleanup temporary variables.
-set(_INCLUDE_DIR)
+set(_CANN_OPCOMPILER_INCLUDE_DIR)

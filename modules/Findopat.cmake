@@ -44,7 +44,7 @@ unset(_cmake_targets_defined)
 unset(_cmake_targets_not_defined)
 unset(_cmake_expected_targets)
 
-find_path(_INCLUDE_DIR
+find_path(_CANN_OPAT_INCLUDE_DIR
     NAMES experiment/opat/cann_kb_api.h
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_FIND_ROOT_PATH)
@@ -56,16 +56,16 @@ find_library(cann_kb_SHARED_LIBRARY
     NO_CMAKE_FIND_ROOT_PATH)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(opa
+find_package_handle_standard_args(opat
     FOUND_VAR
         opat_FOUND
     REQUIRED_VARS
-        _INCLUDE_DIR
+        _CANN_OPAT_INCLUDE_DIR
         cann_kb_SHARED_LIBRARY
 )
 
 if(opat_FOUND)
-    set(opat_INCLUDE_DIR "${_INCLUDE_DIR}/experiment")
+    set(opat_INCLUDE_DIR "${_CANN_OPAT_INCLUDE_DIR}/experiment")
     message(STATUS "Variables in opat module:")
     cmake_print_variables(opat_INCLUDE_DIR)
     cmake_print_variables(cann_kb_SHARED_LIBRARY)
@@ -91,4 +91,4 @@ if(opat_FOUND)
 endif()
 
 # Cleanup temporary variables.
-set(_INCLUDE_DIR)
+set(_CANN_OPAT_INCLUDE_DIR)
