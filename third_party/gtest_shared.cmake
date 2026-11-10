@@ -109,12 +109,15 @@ add_dependencies(GTestShared::gtest gtest_shared_build)
 
 add_library(GTestShared::gmock SHARED IMPORTED GLOBAL)
 add_dependencies(GTestShared::gmock gtest_shared_build)
+target_link_libraries(GTestShared::gmock INTERFACE GTestShared::gtest)
 
 add_library(GTestShared::gtest_main SHARED IMPORTED GLOBAL)
 add_dependencies(GTestShared::gtest_main gtest_shared_build)
+target_link_libraries(GTestShared::gtest_main INTERFACE GTestShared::gtest)
 
 add_library(GTestShared::gmock_main SHARED IMPORTED GLOBAL)
 add_dependencies(GTestShared::gmock_main gtest_shared_build)
+target_link_libraries(GTestShared::gmock_main INTERFACE GTestShared::gmock)
 
 if (NOT EXISTS ${GTEST_INCLUDE})
     file(MAKE_DIRECTORY "${GTEST_INCLUDE}")
