@@ -65,6 +65,7 @@ find_package_handle_standard_args(gtest
 
 if(GTEST_FOUND AND NOT FORCE_REBUILD_CANN_3RD)
     message(STATUS "[ThirdParty][gtest_shared] shared found in ${GTEST_INSTALL_PATH}, and not force rebuild cann third_party")
+    add_custom_target(gtest_shared_build)
 else()
     if (EXISTS "${CANN_3RD_LIB_PATH}/googletest-1.14.0.tar.gz")
         message(STATUS "[ThirdParty][gtest_shared] use local tar.gz")
@@ -96,6 +97,11 @@ else()
         INSTALL_COMMAND $(MAKE) install
         EXCLUDE_FROM_ALL TRUE
         )
+    set(GTEST_INCLUDE ${GTEST_INSTALL_PATH}/include)
+    set(GTEST_LIBRARY ${GTEST_INSTALL_PATH}/lib64/libgtest.so.1.14.0)
+    set(GMOCK_LIBRARY ${GTEST_INSTALL_PATH}/lib64/libgmock.so.1.14.0)
+    set(GTEST_MAIN_LIBRARY ${GTEST_INSTALL_PATH}/lib64/libgtest_main.so.1.14.0)
+    set(GMOCK_MAIN_LIBRARY ${GTEST_INSTALL_PATH}/lib64/libgmock_main.so.1.14.0)
 endif()
 
 add_library(GTestShared::gtest SHARED IMPORTED GLOBAL)
@@ -110,22 +116,23 @@ add_dependencies(GTestShared::gtest_main gtest_shared_build)
 add_library(GTestShared::gmock_main SHARED IMPORTED GLOBAL)
 add_dependencies(GTestShared::gmock_main gtest_shared_build)
 
-if (NOT EXISTS ${GTEST_INSTALL_PATH}/include)
-    file(MAKE_DIRECTORY "${GTEST_INSTALL_PATH}/include")
+if (NOT EXISTS ${GTEST_INCLUDE})
+    file(MAKE_DIRECTORY "${GTEST_INCLUDE}")
 endif ()
 
+# 缓存命中时使用实际探测结果；构建分支使用 ExternalProject 的安装路径。
 set_target_properties(GTestShared::gtest PROPERTIES
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib64/libgtest.so.1.14.0
-    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INSTALL_PATH}/include)
+    IMPORTED_LOCATION ${GTEST_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE})
 
 set_target_properties(GTestShared::gmock PROPERTIES
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib64/libgmock.so.1.14.0
-    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INSTALL_PATH}/include)
+    IMPORTED_LOCATION ${GMOCK_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE})
 
 set_target_properties(GTestShared::gtest_main PROPERTIES
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib64/libgtest_main.so.1.14.0
-    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INSTALL_PATH}/include)
+    IMPORTED_LOCATION ${GTEST_MAIN_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE})
 
 set_target_properties(GTestShared::gmock_main PROPERTIES
-    IMPORTED_LOCATION ${GTEST_INSTALL_PATH}/lib64/libgmock_main.so.1.14.0
-    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INSTALL_PATH}/include)
+    IMPORTED_LOCATION ${GMOCK_MAIN_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE})
