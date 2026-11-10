@@ -163,6 +163,7 @@ if(NOT TARGET ssl_static)
     set_target_properties(ssl_static PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE}"
         IMPORTED_LOCATION             "${SSL_LIB_PATH}"
+        INTERFACE_LINK_LIBRARIES       crypto_static
     )
     add_library(OpenSSL::SSL ALIAS ssl_static)
 else()
