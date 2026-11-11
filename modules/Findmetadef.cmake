@@ -31,7 +31,7 @@ if(_cmake_targets_defined STREQUAL _cmake_expected_targets)
     unset(_cmake_targets_not_defined)
     unset(_cmake_expected_targets)
     unset(CMAKE_IMPORT_FILE_VERSION)
-    cmake_policy(POP)
+    set(metadef_FOUND TRUE)
     return()
 endif()
 
