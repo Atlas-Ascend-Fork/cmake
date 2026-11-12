@@ -65,6 +65,8 @@ PATTERN_COMMENTED_INCLUDE = re.compile(
 
 FILE_ENCODING = "utf-8"
 FILE_ERRORS = "replace"
+# 源码读写保留原始字节。
+SOURCE_FILE_ERRORS = "surrogateescape"
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,9 @@ def atomic_write(filepath: str, content: str) -> None:
     dir_name = os.path.dirname(filepath) or "."
     fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
     try:
-        with os.fdopen(fd, "w", encoding=FILE_ENCODING, errors=FILE_ERRORS) as f:
+        with os.fdopen(
+            fd, "w", encoding=FILE_ENCODING, errors=SOURCE_FILE_ERRORS, newline=""
+        ) as f:
             f.write(content)
         if os.path.exists(filepath):
             orig_mode = os.stat(filepath).st_mode
@@ -203,7 +207,8 @@ def annotate_lines_by_rules(
                 ranges = token_map[inc_token]
                 if ranges is None or _in_ranges(lineno, ranges):
                     indent = line[: len(line) - len(line.lstrip())]
-                    new_line = f"{indent}// {IWYU_FIX_MARKER} {s_line}\n"
+                    line_ending = line[len(line.rstrip("\r\n")) :]
+                    new_line = f"{indent}// {IWYU_FIX_MARKER} {s_line}{line_ending}"
                     new_lines.append(new_line)
                     changed = True
                     continue
@@ -244,7 +249,9 @@ def _process_file(
 ) -> bool:
     """通用文件处理：读取、变换、写回。返回是否发生变更。"""
     try:
-        with open(fpath, encoding=FILE_ENCODING, errors=FILE_ERRORS) as f:
+        with open(
+            fpath, encoding=FILE_ENCODING, errors=SOURCE_FILE_ERRORS, newline=""
+        ) as f:
             src_lines = f.readlines()
         new_lines, changed = transform_fn(src_lines)
         if changed and not dry_run:
