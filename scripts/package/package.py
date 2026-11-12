@@ -1198,7 +1198,7 @@ def args_parse():
     parser.add_argument(
         "--pkg-name-style",
         metavar="pkg_name_style",
-        default="common",
+        default="underline",
         help="Package name style.",
     )
     return parser.parse_args()

@@ -68,7 +68,7 @@ class PackageName:
         region3 = "-".join(
             filter(None, [os_arch, chip_plat, deploy_type, package_suffix, ext_name])
         )
-        package_name = "_".join(filter(None, [region1, region2, region3]))
+        package_name = self.name_sep.join(filter(None, [region1, region2, region3]))
 
         return f"{package_name}.{self.suffix}"
 

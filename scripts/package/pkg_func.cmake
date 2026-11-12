@@ -30,10 +30,25 @@ function(pre_package_process component share_info_name source_dir enable_device 
         include(${CPACK_CANN_PRE_PKG_${component}})
     endif()
 
+    if(CPACK_CANN_${component}_PKG_OS_ARCH)
+        set(OS_ARCH "${CPACK_CANN_${component}_PKG_OS_ARCH}")
+    elseif(CPACK_CANN_PKG_OS_ARCH)
+        set(OS_ARCH "${CPACK_CANN_PKG_OS_ARCH}")
+    else()
+        set(OS_ARCH "linux-${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+
+    set(PKG_NAME_STYLE)
+    if(CPACK_CANN_${component}_PKG_NAME_STYLE)
+        set(PKG_NAME_STYLE "--pkg-name-style" "${CPACK_CANN_${component}_PKG_NAME_STYLE}")
+    elseif(CPACK_CANN_PKG_NAME_STYLE)
+        set(PKG_NAME_STYLE "--pkg-name-style" "${CPACK_CANN_PKG_NAME_STYLE}")
+    endif()
+
     execute_process(
         COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/package.py --pkg_name ${share_info_name} --chip_name ${CPACK_SOC}
-                --os_arch linux-${CMAKE_SYSTEM_PROCESSOR} --version_dir ${CPACK_PACKAGE_VERSION} --delivery_dir ${CANN_PACKAGE_DIR}
-                --source_dir ${source_dir} --suffix ${suffix} --command-output "${STAGING_DIR}/makeself.txt"
+                --os_arch ${OS_ARCH} --version_dir ${CPACK_PACKAGE_VERSION} --delivery_dir ${CANN_PACKAGE_DIR}
+                --source_dir ${source_dir} --suffix ${suffix} ${PKG_NAME_STYLE} --command-output "${STAGING_DIR}/makeself.txt"
         WORKING_DIRECTORY ${CPACK_CMAKE_BINARY_DIR}
         OUTPUT_VARIABLE result
         ERROR_VARIABLE error
