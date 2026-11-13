@@ -48,6 +48,10 @@ set(SECURITY_COMPILE_OPT "-Wl,-z,relro,-z,now,-z,noexecstack -s -Wl,-Bsymbolic")
 set(PROTOBUF_SHARED_CXXFLAGS "${SECURITY_COMPILE_OPT} -Wno-maybe-uninitialized -Wno-unused-parameter -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_ABI} -O2 -Dgoogle=ascend_private ${PROTOBUF_SYM_RENAME}")
 set(PROTOBUF_STATIC_CXXFLAGS "-fvisibility=hidden -fvisibility-inlines-hidden -Wno-maybe-uninitialized -Wno-unused-parameter -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_ABI} -O2 -Dgoogle=ascend_private ${PROTOBUF_SYM_RENAME}")
 
+if(ENABLE_ASAN)
+    set(PROTOBUF_STATIC_CXXFLAGS "${PROTOBUF_STATIC_CXXFLAGS} ${CANN_ASAN_COMPILE_OPTIONS}")
+endif()
+
 set(PROTOBUF_TOOLCHAIN_ARGS)
 if(CMAKE_TOOLCHAIN_FILE)
     list(APPEND PROTOBUF_TOOLCHAIN_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})

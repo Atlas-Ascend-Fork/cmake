@@ -332,6 +332,8 @@ macro(init_cann_project)
         set(INSTALL_INCLUDE_DIR include)
         set(INSTALL_CONFIG_DIR cmake)
 
+        set(CANN_ASAN_COMPILE_OPTIONS "-fsanitize=address -fsanitize=leak -fsanitize-recover=address -fno-stack-protector -fno-omit-frame-pointer -g")
+
         # 组件使用ASCEND_INSTALL_PATH或ASCEND_CANN_PACKAGE_PATH作为cann包安装路径
         if(NOT ASCEND_INSTALL_PATH AND ASCEND_CANN_PACKAGE_PATH)
             set(ASCEND_INSTALL_PATH "${ASCEND_CANN_PACKAGE_PATH}")
