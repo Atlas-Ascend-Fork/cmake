@@ -96,6 +96,12 @@ else()
             message(STATUS "[ThirdParty][csec] ${REQ_URL} not found, need download.")
         endif()
 
+        # libboundscheck 使用原生 Makefile，构建工具独立于父工程生成器。
+        find_program(CSEC_MAKE_PROGRAM NAMES gmake make)
+        if(NOT CSEC_MAKE_PROGRAM)
+            message(FATAL_ERROR "make is required to build libboundscheck")
+        endif()
+
         ExternalProject_Add(csec_build
             URL ${REQ_URL}
             URL_HASH SHA256=aee8368ef04a42a499edd5bfebce529e7f32dd138bfed383d316e48af4e45d2c
@@ -107,17 +113,24 @@ else()
             CONFIGURE_COMMAND ""
             BUILD_IN_SOURCE 1
             BUILD_JOB_SERVER_AWARE ${CSEC_BUILD_JOB_SERVER_AWARE}
-            BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
+            BUILD_COMMAND ${CSEC_MAKE_PROGRAM}
                 -C <SOURCE_DIR> lib
                 CC=${CMAKE_C_COMPILER}
                 AR=${CMAKE_AR}
                 LINK=${CMAKE_C_COMPILER}
                 CFLAGS="${CSEC_EXTRA_CFLAGS}"
                 LDFLAGS="${CSEC_EXTRA_LDFLAGS}"
-            INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CSEC_INSTALL_PATH}/lib
-                COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/lib/libc_sec.so ${CSEC_INSTALL_PATH}/lib/libc_sec.so
-                COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/lib/libc_sec.a ${CSEC_INSTALL_PATH}/lib/libc_sec.a
-                COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/include ${CSEC_INSTALL_PATH}/include
+            INSTALL_COMMAND ""
+        )
+        # 安装库由复制步骤生成；Ninja 可据此构建消费者并恢复缺失的缓存库。
+        ExternalProject_Add_Step(csec_build install_libraries
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CSEC_INSTALL_PATH}/lib
+            COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/lib/libc_sec.so ${CSEC_INSTALL_PATH}/lib/libc_sec.so
+            COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/lib/libc_sec.a ${CSEC_INSTALL_PATH}/lib/libc_sec.a
+            COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/include ${CSEC_INSTALL_PATH}/include
+            DEPENDEES build
+            DEPENDERS install
+            BYPRODUCTS ${CSEC_INSTALL_PATH}/lib/libc_sec.so ${CSEC_INSTALL_PATH}/lib/libc_sec.a
         )
 
         set(LIBC_SEC_HEADER ${CSEC_INSTALL_PATH}/include)
