@@ -53,9 +53,9 @@ gen_timestamp() {
 
     if [[ "$TIMESTAMP" == "1" ]]; then
         if [[ -n "$SOURCE_DATE_EPOCH" ]]; then
-            timestamp="$(date +%Y%m --date=@$SOURCE_DATE_EPOCH)"
+            timestamp="$(date -u +%Y%m --date=@$SOURCE_DATE_EPOCH)"
         else
-            timestamp="$(date +%Y%m)"
+            timestamp="$(date -u +%Y%m)"
         fi
         echo "#define ${package_name}_TIMESTAMP ${timestamp}"
     fi
@@ -78,9 +78,10 @@ gen_version_header() {
     parse_version "release_part" "pre_release" "$version"
 
     if [[ -n "$SOURCE_DATE_EPOCH" ]]; then
-        year="$(date +%Y --date=@$SOURCE_DATE_EPOCH)"
+        # date -u兼容性较好，date --utc不在POSIX标准中
+        year="$(date -u +%Y --date=@$SOURCE_DATE_EPOCH)"
     else
-        year="$(date +%Y)"
+        year="$(date -u +%Y)"
     fi
 
     cat <<EOF
