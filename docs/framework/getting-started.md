@@ -107,6 +107,7 @@ init_cann_project()
 # 配置
 cmake -B build \
     -DENABLE_OPEN_SRC=TRUE \
+    -DCMAKE_BUILD_TYPE=Release \
     -DASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/cann
 
 # 编译
@@ -116,10 +117,10 @@ cmake --build build -j8
 cmake --install build --prefix /path/to/install
 ```
 
-通过 `CMAKE_BUILD_TYPE` 指定构建类型：
+对于单配置生成器，通过 `CMAKE_BUILD_TYPE` 指定构建类型。直接使用 CMake 独立配置时，框架不会设置该变量的默认值，建议首次配置时显式指定；多仓联编入口 `build.sh` 则默认传入 `Release`。
 
 ```bash
-# Release（默认）
+# Release
 cmake -B build -DCMAKE_BUILD_TYPE=Release ...
 
 # Debug
@@ -136,7 +137,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug ...
 | `ENABLE_GCOV` | 启用代码覆盖率 | `FALSE` |
 | `ENABLE_STRICT_WARNINGS` | 启用增强告警（须在首次 include `intf_pub` 前设置） | `FALSE` |
 | `USE_CXX11_ABI` | 覆盖 CXX11 ABI 设置（host 默认 `0`，device 默认 `1`） | 自动 |
-| `CMAKE_BUILD_TYPE` | 构建类型 | `Release` |
+| `CMAKE_BUILD_TYPE` | 构建类型（单配置生成器） | 由组件工程、工具链或 CMake 初始化规则决定，框架不设置 |
 
 ## host 侧与 device 侧构建
 
