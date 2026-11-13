@@ -520,23 +520,29 @@ endfunction()
 # SHARE_INFO_NAME: 如果子包在share/info目录下的名字与component不一致，则需要设置
 # PRE_PKG: 打包前处理脚本路径
 # ARCHIVE_FILE_NAME: TGZ包名
+# BELONG_TO: 归属包名。部分仓使用的component和包名不一致
 function(set_cann_cpack_config component)
     if(NOT TOPLEVEL_PROJECT AND NOT ENABLE_UNIFIED_BUILD)
         return()
     endif()
 
-    if(ENABLE_UNIFIED_BUILD)
-        if(NOT component IN_LIST CANN_PACKAGES)
-            return()
-        endif()
-    endif()
-
     cmake_parse_arguments(CANN
         "TGZ"
-        "PRE_PKG;ENABLE_DEVICE;PACKAGE_TYPE;COMPUTE_UNIT;SHARE_INFO_NAME;OUTPUT;ARCHIVE_FILE_NAME"
+        "PRE_PKG;ENABLE_DEVICE;PACKAGE_TYPE;COMPUTE_UNIT;SHARE_INFO_NAME;OUTPUT;ARCHIVE_FILE_NAME;BELONG_TO"
         ""
         ${ARGN}
     )
+
+    if(ENABLE_UNIFIED_BUILD)
+        if(CANN_BELONG_TO)
+            set(BELONG_TO_PKG "${CANN_BELONG_TO}")
+        else()
+            set(BELONG_TO_PKG "${component}")
+        endif()
+        if(NOT BELONG_TO_PKG IN_LIST CANN_PACKAGES)
+            return()
+        endif()
+    endif()
 
     __cann_append_global_property(CPACK_COMPONENTS_ALL "${component}")
     # 组件在不同目录中声明，后续重新生成 CPack 配置时仍需读取各自的运行依赖。
