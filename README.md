@@ -49,7 +49,7 @@ cmake/
 
 1. **创建cmake/fetch_cann_cmake.cmake文件**
 
-    粘贴以下代码。
+    粘贴以下代码。代码中以 `master-025` 版本为例，实际使用时可前往 [https://gitcode.com/cann/cmake/tags](https://gitcode.com/cann/cmake/tags) 获取具体版本，并使用 `sha256sum cmake-<tag>.tar.gz` 计算该版本压缩包的哈希值，替换示例中的 `URL_HASH SHA256` 校验值。
 
     ```cmake
     if(NOT PROJECT_SOURCE_DIR)
@@ -58,7 +58,6 @@ cmake/
             include("${CANN_3RD_LIB_PATH}/cann-cmake/function/prepare.cmake")
         else()
             include(FetchContent)
-    
             if(CANN_3RD_LIB_PATH AND EXISTS "${CANN_3RD_LIB_PATH}/cmake-${CANN_CMAKE_TAG}.tar.gz")
                 FetchContent_Declare(
                     cann-cmake
