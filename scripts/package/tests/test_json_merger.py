@@ -117,10 +117,9 @@ def test_main_batch_mode(tmp_path: Path):
     f2.write_text(json.dumps({"binList": ["B"]}), encoding="utf-8")
 
     # 模拟命令行：python json_merger.py --input-files f1 f2 --output-file out
-    ok = json_merger.main([
-        "--input-files", str(f1), str(f2),
-        "--output-file", str(out)
-    ])
+    ok = json_merger.main(
+        ["--input-files", str(f1), str(f2), "--output-file", str(out)]
+    )
 
     assert ok is True
     assert out.exists()

@@ -13,7 +13,6 @@
 
 """Tests for funcbase utility functions."""
 
-import pytest
 from package.utils import funcbase
 
 
@@ -23,15 +22,12 @@ class TestDispatchExtended:
     @staticmethod
     def test_dispatch_basic():
         """Test dispatch function."""
-        func = funcbase.dispatch(
-            lambda x: x * 2,
-            lambda x: x + 1
-        )
+        func = funcbase.dispatch(lambda x: x * 2, lambda x: x + 1)
         # dispatch returns a generator
         result = list(func(5))
         # Should apply all functions
         assert 10 in result  # 5 * 2
-        assert 6 in result   # 5 + 1
+        assert 6 in result  # 5 + 1
 
 
 class TestPipeExtended:
@@ -40,10 +36,7 @@ class TestPipeExtended:
     @staticmethod
     def test_pipe_basic():
         """Test pipe function."""
-        func = funcbase.pipe(
-            lambda x: x * 2,
-            lambda x: x + 1
-        )
+        func = funcbase.pipe(lambda x: x * 2, lambda x: x + 1)
         result = func(5)
         assert result == 11  # (5 * 2) + 1
 
@@ -54,8 +47,5 @@ class TestInvokeExtended:
     @staticmethod
     def test_invoke_basic():
         """Test invoke function."""
-        result = funcbase.invoke(
-            list,
-            iter([1, 2, 3])
-        )
+        result = funcbase.invoke(list, iter([1, 2, 3]))
         assert result == [1, 2, 3]

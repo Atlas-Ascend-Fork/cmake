@@ -23,23 +23,46 @@ from io import StringIO
 from itertools import chain
 from operator import attrgetter, itemgetter, methodcaller
 from typing import (
-    Any, Callable, Dict, Iterable, Iterator, List, NamedTuple, Optional, Set, Tuple, Union
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    Union,
 )
 
-from utils import pkg_utils
 from filelist import FileItem, FileList, fill_is_common_path
 from utils.pkg_utils import (
-    ContainAsteriskError, BLOCK_CONFIG_PATH,
-    BlockConfigError, EnvNotSupported, IllegalVersionDir,
-    InstallScriptFormatError, InstallScriptNotInPackageInfo, MultiPkgSoftlinkError, PackageError,
-    MultiPkgModError, PkgInnerSoftlinkNotAllowed, 
-    ParseOsArchError, VersionInfoNotExist, config_feature_to_set,
-    flatten, star_pipe, merge_dict, yield_if
+    ContainAsteriskError,
+    BlockConfigError,
+    EnvNotSupported,
+    IllegalVersionDir,
+    InstallScriptFormatError,
+    InstallScriptNotInPackageInfo,
+    MultiPkgSoftlinkError,
+    PackageError,
+    MultiPkgModError,
+    PkgInnerSoftlinkNotAllowed,
+    ParseOsArchError,
+    VersionInfoNotExist,
+    config_feature_to_set,
+    flatten,
+    star_pipe,
+    merge_dict,
+    yield_if,
 )
 from utils.funcbase import constant, dispatch, invoke, pipe, star_apply
 from utils.comm_log import CommLog
 from version_info import (
-    VersionInfo, VersionXml, VersionFormatNotMatch, is_multi_version
+    VersionInfo,
+    VersionXml,
+    VersionFormatNotMatch,
+    is_multi_version,
 )
 
 # 环境变量字典
@@ -57,11 +80,12 @@ GenerateInfo = Dict[str, str]
 
 class ParseOption(NamedTuple):
     """解析参数。"""
+
     os_arch: Optional[str]
     pkg_version: Optional[str]
     build_type: Optional[str]
     package_check: bool
-    ext_name: str = ''
+    ext_name: str = ""
 
 
 def parse_os_arch(os_arch: str) -> Tuple[str, str, str]:
@@ -74,7 +98,7 @@ def parse_os_arch(os_arch: str) -> Tuple[str, str, str]:
             arch = match.group(4)
         else:
             # 如果os_arch中没有配置ARCH，ARCH默认值为aarch64
-            arch = 'aarch64'
+            arch = "aarch64"
 
         return os_name, os_ver, arch
 
@@ -85,13 +109,13 @@ def replace_env(env_dict: EnvDict, in_str: str):
     """替换环境变量为实际值。"""
     env_list = re.findall(".*?\\$\\((.*?)\\).*?", in_str)
     for env in env_list:
-        if env == 'FILE':
+        if env == "FILE":
             continue
         if env in env_dict:
             if env_dict[env] is not None:
                 in_str = in_str.replace(f"$({env})", env_dict[env])
             else:
-                in_str = in_str.replace(f"$({env})", '')
+                in_str = in_str.replace(f"$({env})", "")
         else:
             raise EnvNotSupported(f"Error: {env} not supported.")
     return in_str
@@ -99,6 +123,7 @@ def replace_env(env_dict: EnvDict, in_str: str):
 
 class ParseEnv(NamedTuple):
     """解析上下文环境。"""
+
     env_dict: EnvDict
     parse_option: ParseOption
     pkg_config_dir: str
@@ -108,6 +133,7 @@ class ParseEnv(NamedTuple):
 
 class BlockElement(NamedTuple):
     """块配置。"""
+
     name: str
     block_conf_path: str
     dst_path: str
@@ -117,11 +143,12 @@ class BlockElement(NamedTuple):
 
 
 # BlockElement直接透传给LoadedBlockElement的参数列表
-BLOCK_ELEMENT_PASS_THROUGH_ARGS = ['dst_path', 'chips', 'features', 'attrs']
+BLOCK_ELEMENT_PASS_THROUGH_ARGS = ["dst_path", "chips", "features", "attrs"]
 
 
 class LoadedBlockElement(NamedTuple):
     """加载后的块配置。"""
+
     root_ele: ET.Element
     use_move: bool
     dst_path: str
@@ -132,6 +159,7 @@ class LoadedBlockElement(NamedTuple):
 
 class FileInfoParsedResult(NamedTuple):
     """file_info元素解析结果。"""
+
     file_info: FileInfo
     move_infos: List[FileInfo]
     dir_infos: List[Dict[str, str]]
@@ -140,12 +168,14 @@ class FileInfoParsedResult(NamedTuple):
 
 class PkgMod(NamedTuple):
     """包内文件权限。"""
+
     path: str
     mod: int
 
 
 class PkgSoftlink(NamedTuple):
     """包内软链接"""
+
     dst_path: str
     src_path: str
 
@@ -164,11 +194,13 @@ class BlockConfig(NamedTuple):
 
 class PackerConfig(NamedTuple):
     """打包相关配置。"""
+
     fill_is_common_path: Callable[[FileList], Iterator[FileItem]]
 
 
 class XmlConfig(NamedTuple):
     """打包xml配置。"""
+
     default_config: Dict[str, str]
     package_attr: PackageAttr
     version_info: VersionInfo
@@ -185,43 +217,45 @@ class XmlConfig(NamedTuple):
 
     @property
     def dir_install_list(self):
-        return self._collect_list('dir_install_list')
+        return self._collect_list("dir_install_list")
 
     @property
     def move_content_list(self):
-        return self._collect_list('move_files')
+        return self._collect_list("move_files")
 
     @property
     def expand_content_list(self):
-        return self._collect_list('expand_content_list')
+        return self._collect_list("expand_content_list")
 
     @property
     def package_content_list(self):
-        return self._collect_list('package_content_list')
+        return self._collect_list("package_content_list")
 
     @property
     def pkg_mods(self) -> List[PkgMod]:
-        return self._collect_list('pkg_mods')
+        return self._collect_list("pkg_mods")
 
     @property
     def pkg_softlinks(self) -> List[PkgSoftlink]:
-        return self._collect_list('pkg_softlinks')
+        return self._collect_list("pkg_softlinks")
 
     @property
     def generate_infos(self) -> List[GenerateInfo]:
-        return self._collect_list('generate_infos')
+        return self._collect_list("generate_infos")
 
 
 # 默认包属性
 DEFAULT_PACKAGE_ATTR = {
-    'gen_version_info': True,
+    "gen_version_info": True,
 }
 
 
 def parse_package_info(package_info_ele: Optional[ET.Element]) -> Dict:
     """解析package_info元素。"""
 
-    def get_package_info_attrs(ele: ET.Element) -> Iterator[Tuple[str, Union[str, bool]]]:
+    def get_package_info_attrs(
+        ele: ET.Element,
+    ) -> Iterator[Tuple[str, Union[str, bool]]]:
         # expand_asterisk: 展开配置中星号
         # parallel: 并行复制文件
         # parallel_limit: 限制并发数
@@ -229,10 +263,16 @@ def parse_package_info(package_info_ele: Optional[ET.Element]) -> Dict:
         # check_features: 检查filelist.csv中所有feature是否符合package_check
         # gen_version_info: 是否生成version.info文件
         bool_attrs = (
-            'expand_asterisk', 'parallel', 'parallel_limit', 'package_check', 'check_features',
-            'use_move', 'gen_version_info', 'copy_all'
+            "expand_asterisk",
+            "parallel",
+            "parallel_limit",
+            "package_check",
+            "check_features",
+            "use_move",
+            "gen_version_info",
+            "copy_all",
         )
-        bool_values = ('t', 'true', 'y', 'yes')
+        bool_values = ("t", "true", "y", "yes")
         if ele.tag in bool_attrs:
             if ele.text.lower() in bool_values:
                 yield ele.tag, True
@@ -255,12 +295,12 @@ def parse_package_attr_by_args(args: Namespace) -> Dict:
     """通过命令行参数解析"""
 
     def pairs():
-        if hasattr(args, 'chip_name') and args.chip_name:
-            yield 'chip_name', args.chip_name
-        if hasattr(args, 'suffix') and args.suffix:
-            yield 'suffix', args.suffix
-        if hasattr(args, 'func_name') and args.func_name:
-            yield 'func_name', args.func_name
+        if hasattr(args, "chip_name") and args.chip_name:
+            yield "chip_name", args.chip_name
+        if hasattr(args, "suffix") and args.suffix:
+            yield "suffix", args.suffix
+        if hasattr(args, "func_name") and args.func_name:
+            yield "func_name", args.func_name
 
     return dict(pairs())
 
@@ -275,25 +315,27 @@ def parse_package_attr(root_ele: ET.Element, args: Namespace) -> Dict:
     )
 
 
-def render_cann_version(a_ver: int,
-                        b_ver: int,
-                        c_ver: Optional[int],
-                        d_ver: Optional[int],
-                        e_ver: Optional[int],
-                        f_ver: Optional[int]) -> str:
+def render_cann_version(
+    a_ver: int,
+    b_ver: int,
+    c_ver: Optional[int],
+    d_ver: Optional[int],
+    e_ver: Optional[int],
+    f_ver: Optional[int],
+) -> str:
     """渲染CANN版本号。"""
     buffer = StringIO()
-    buffer.write('(')
-    buffer.write(f'({a_ver + 1} * 100000000) + ({b_ver + 1} * 1000000)')
+    buffer.write("(")
+    buffer.write(f"({a_ver + 1} * 100000000) + ({b_ver + 1} * 1000000)")
     if c_ver is not None:
-        buffer.write(f' + ({c_ver + 1} * 10000)')
+        buffer.write(f" + ({c_ver + 1} * 10000)")
     if d_ver is not None:
-        buffer.write(f' + (({d_ver + 1} * 100) + 5000)')
+        buffer.write(f" + (({d_ver + 1} * 100) + 5000)")
     if e_ver is not None:
-        buffer.write(f' + ({e_ver + 1} * 100)')
+        buffer.write(f" + ({e_ver + 1} * 100)")
     if f_ver is not None:
-        buffer.write(f' + {f_ver}')
-    buffer.write(')')
+        buffer.write(f" + {f_ver}")
+    buffer.write(")")
     return buffer.getvalue()
 
 
@@ -308,20 +350,20 @@ def render_semver(package_name: str, version: str) -> Iterator[Tuple[str, str]]:
     4. 多段序号比较：从左到右逐段比较（如 alpha.1.2 > alpha.1.1）
     """
     expr_buffer = StringIO()
-    expr_buffer.write('(')
+    expr_buffer.write("(")
 
     # 移除构建元数据（+后面的内容不影响版本优先级）
-    version = version.split('+')[0]
+    version = version.split("+")[0]
 
     # 分离正式版本和预发布版本
     pre_release = None
-    if '-' in version:
-        release_part, pre_release = version.split('-', 1)
-        release_part = release_part.split('.')
+    if "-" in version:
+        release_part, pre_release = version.split("-", 1)
+        release_part = release_part.split(".")
     else:
-        release_part = version.split('.')
+        release_part = version.split(".")
         if len(release_part) > 3:
-            pre_release = '.'.join(release_part[3:])
+            pre_release = ".".join(release_part[3:])
             release_part = release_part[:3]
 
     # 解析正式版本号（主版本.次版本.修订号）
@@ -330,35 +372,35 @@ def render_semver(package_name: str, version: str) -> Iterator[Tuple[str, str]]:
     except (ValueError, TypeError) as ex:
         raise IllegalVersionDir(f"无效的版本号格式: {version}") from ex
 
-    yield f'{package_name}_VERSION_STR', f'"{version}"'
-    yield f'{package_name}_MAJOR', str(major)
-    yield f'{package_name}_MINOR', str(minor)
-    yield f'{package_name}_PATCH', str(patch)
+    yield f"{package_name}_VERSION_STR", f'"{version}"'
+    yield f"{package_name}_MAJOR", str(major)
+    yield f"{package_name}_MINOR", str(minor)
+    yield f"{package_name}_PATCH", str(patch)
 
     # 计算基础版本值（主版本*10^7 + 次版本*10^5 + 修订号*10^3）
     # 预留10^3空间用于预发布版本，确保不同正式版本区间不重叠
-    expr_buffer.write(f'({major} * 10000000) + ({minor} * 100000) + ({patch} * 1000)')
+    expr_buffer.write(f"({major} * 10000000) + ({minor} * 100000) + ({patch} * 1000)")
 
     # 处理正式版本（无预发布部分）
     if not pre_release:
-        expr_buffer.write(')')
-        yield f'{package_name}_PRERELEASE', '""'
-        yield f'{package_name}_VERSION_NUM', expr_buffer.getvalue()
+        expr_buffer.write(")")
+        yield f"{package_name}_PRERELEASE", '""'
+        yield f"{package_name}_VERSION_NUM", expr_buffer.getvalue()
         return
 
-    yield f'{package_name}_PRERELEASE', f'"{pre_release}"'
+    yield f"{package_name}_PRERELEASE", f'"{pre_release}"'
 
     # 预发布类型权重（值越小优先级越高）
     type_weights = {
-        'rc': 100,  # rc优先级最高
-        'beta': 200,  # beta次之
-        'alpha': 300,  # alpha最低
+        "rc": 100,  # rc优先级最高
+        "beta": 200,  # beta次之
+        "alpha": 300,  # alpha最低
     }
 
     def calc_pre_release() -> Tuple[int, int]:
         """计算预发布版本。"""
-        if '.' in pre_release:
-            pre_parts = pre_release.split('.')
+        if "." in pre_release:
+            pre_parts = pre_release.split(".")
             pre_type = pre_parts[0]  # 提取预发布类型（rc/beta/alpha等）
 
             # 提取序号部分（支持多段序号，非数字部分忽略）
@@ -373,7 +415,7 @@ def render_semver(package_name: str, version: str) -> Iterator[Tuple[str, str]]:
             pre_type_weight = type_weights.get(pre_type, 400)
 
             # 计算序号值（支持多段和多位数）
-            num_str = ''.join(map(str, pre_nums))
+            num_str = "".join(map(str, pre_nums))
             # 转换为整数并返回
             num_value = int(num_str)
             return pre_type_weight, num_value
@@ -381,7 +423,7 @@ def render_semver(package_name: str, version: str) -> Iterator[Tuple[str, str]]:
         for pre_type in type_weights:
             if pre_release.startswith(pre_type):
                 pre_type_weight = type_weights[pre_type]
-                num_value = int(pre_release[len(pre_type):])
+                num_value = int(pre_release[len(pre_type) :])
                 return pre_type_weight, num_value
 
         return None, None
@@ -396,10 +438,10 @@ def render_semver(package_name: str, version: str) -> Iterator[Tuple[str, str]]:
 
     # 预发布版本最终值 = 基础值 - 类型权重 + 序号值
     # 确保：预发布值 < 基础值（正式版本）
-    expr_buffer.write(f' - {pre_type_weight} + {num_value}')
-    expr_buffer.write(')')
+    expr_buffer.write(f" - {pre_type_weight} + {num_value}")
+    expr_buffer.write(")")
 
-    yield f'{package_name}_VERSION_NUM', expr_buffer.getvalue()
+    yield f"{package_name}_VERSION_NUM", expr_buffer.getvalue()
 
 
 def get_cann_version_info(name: str, version: str) -> Iterator[Tuple[str, str]]:
@@ -408,7 +450,7 @@ def get_cann_version_info(name: str, version: str) -> Iterator[Tuple[str, str]]:
     package_name = name[:-8]
 
     if not version:
-        yield f'{package_name}_VERSION_STR', '"0"'
+        yield f"{package_name}_VERSION_STR", '"0"'
         return
 
     yield from render_semver(package_name, version)
@@ -416,50 +458,52 @@ def get_cann_version_info(name: str, version: str) -> Iterator[Tuple[str, str]]:
 
 def get_default_env_items() -> Iterator[Tuple[str, str]]:
     """获取默认环境字典条目。"""
-    yield 'VERSION_DIR', ''
-    yield 'HOME', os.environ.get('HOME')
+    yield "VERSION_DIR", ""
+    yield "HOME", os.environ.get("HOME")
 
 
 def get_env_items_by_version(version: Optional[str]) -> Iterator[Tuple[str, str]]:
     """根据version获取环境字典条目。"""
     if version:
-        yield 'ASCEND_VER', version
-        yield 'VERSION', version
+        yield "ASCEND_VER", version
+        yield "VERSION", version
 
-        version_parts = version.split('.')
+        version_parts = version.split(".")
         for idx in range(1, len(version_parts) + 1):
-            yield f'CUR_VER[{idx}]', '.'.join(version_parts[:idx])
-        yield 'CUR_VER', version
-        yield 'LOWER_CUR_VER', version.lower()
+            yield f"CUR_VER[{idx}]", ".".join(version_parts[:idx])
+        yield "CUR_VER", version
+        yield "LOWER_CUR_VER", version.lower()
 
 
-def get_env_items_by_version_dir(version_dir: Optional[str]) -> Iterator[Tuple[str, str]]:
+def get_env_items_by_version_dir(
+    version_dir: Optional[str],
+) -> Iterator[Tuple[str, str]]:
     """根据version_dir获取环境字典条目。"""
     if version_dir:
-        yield 'VERSION_DIR', version_dir
+        yield "VERSION_DIR", version_dir
 
 
 def get_os_arch_default_env_items() -> Iterator[Tuple[str, str]]:
     """获取系统相关默认环境字典条目。"""
-    yield 'OS_NAME', 'linux'
-    yield 'OS_VER', ''
-    yield 'ARM', 'aarch64'
-    yield 'TARGET_ENV', '$(TARGET_ENV)'
+    yield "OS_NAME", "linux"
+    yield "OS_VER", ""
+    yield "ARM", "aarch64"
+    yield "TARGET_ENV", "$(TARGET_ENV)"
 
 
 def get_env_items_by_os_arch(os_arch: str) -> Iterator[Tuple[str, str]]:
     """根据os_arch获取环境字典条目。"""
     if os_arch:
         os_name, os_ver, arch = parse_os_arch(os_arch)
-        yield 'OS_NAME', os_name
-        yield 'OS_VER', os_ver
-        yield 'ARCH', arch
-        yield 'OS_ARCH', os_arch
-        if arch in ('arm', 'sw_64'):
-            yield 'ARM', arch
+        yield "OS_NAME", os_name
+        yield "OS_VER", os_ver
+        yield "ARCH", arch
+        yield "OS_ARCH", os_arch
+        if arch in ("arm", "sw_64"):
+            yield "ARM", arch
         else:
-            yield 'ARM', 'aarch64'
-        yield 'TARGET_ENV', f"{arch}-linux"
+            yield "ARM", "aarch64"
+        yield "TARGET_ENV", f"{arch}-linux"
     else:
         yield from get_os_arch_default_env_items()
 
@@ -467,27 +511,29 @@ def get_env_items_by_os_arch(os_arch: str) -> Iterator[Tuple[str, str]]:
 def get_env_items_by_timestamp(timestamp: Optional[str]) -> Iterator[Tuple[str, str]]:
     """根据timestamp获取环境字典条目。"""
     if timestamp:
-        yield 'TIMESTAMP', timestamp
-        yield 'TIMESTAMP_NO', timestamp.replace('_', '')
+        yield "TIMESTAMP", timestamp
+        yield "TIMESTAMP_NO", timestamp.replace("_", "")
     else:
-        yield 'TIMESTAMP', '0'
-        yield 'TIMESTAMP_NO', '0'
+        yield "TIMESTAMP", "0"
+        yield "TIMESTAMP_NO", "0"
 
 
-def parse_env_dict(os_arch: str,
-                   package_attr: PackageAttr,
-                   version: Optional[str],
-                   version_dir: Optional[str],
-                   timestamp: Optional[str]) -> EnvDict:
+def parse_env_dict(
+    os_arch: str,
+    package_attr: PackageAttr,
+    version: Optional[str],
+    version_dir: Optional[str],
+    timestamp: Optional[str],
+) -> EnvDict:
     """解析环境变量字典。"""
     env_dict = dict(
         chain(
             get_default_env_items(),
-            yield_if(('ARCH', package_attr.get('default_arch')), itemgetter(1)),
+            yield_if(("ARCH", package_attr.get("default_arch")), itemgetter(1)),
             get_env_items_by_os_arch(os_arch),
             get_env_items_by_version(version),
             get_env_items_by_version_dir(version_dir),
-            yield_if(('VERSION_DIR', version_dir), constant(version_dir)),
+            yield_if(("VERSION_DIR", version_dir), constant(version_dir)),
             get_env_items_by_timestamp(timestamp),
         )
     )
@@ -497,7 +543,7 @@ def parse_env_dict(os_arch: str,
 
 def get_timestamp(args: Namespace) -> Optional[str]:
     """获取触发时间戳。"""
-    if 'tag' not in args:
+    if "tag" not in args:
         return None
 
     tag = args.tag
@@ -517,39 +563,44 @@ def extract_element_attrib(ele: ET.Element) -> Dict:
     return ele.attrib.copy()
 
 
-def extract_generate_info_content(generate_info_ele: ET.Element, env_dict: EnvDict) -> Dict:
+def extract_generate_info_content(
+    generate_info_ele: ET.Element, env_dict: EnvDict
+) -> Dict:
     """提取生成信息内容。"""
     file_content = {
         sub_item.tag: replace_env(env_dict, sub_item.text)
         for sub_item in list(generate_info_ele)
     }
-    return {
-        'content': file_content
-    }
+    return {"content": file_content}
 
 
-def parse_generate_infos_by_loaded_block(loaded_block: LoadedBlockElement,
-                                         default_config: Dict[str, str],
-                                         env_dict: EnvDict) -> List[Dict]:
+def parse_generate_infos_by_loaded_block(
+    loaded_block: LoadedBlockElement, default_config: Dict[str, str], env_dict: EnvDict
+) -> List[Dict]:
     """根据根元素解析生成信息列表。"""
     return invoke(
         pipe(
             partial(
-                map, pipe(
+                map,
+                pipe(
                     dispatch(
                         pipe(
                             extract_element_attrib,
                             partial(merge_dict, default_config),
-                            partial(evaluate_info, loaded_block=loaded_block, env_dict=env_dict),
+                            partial(
+                                evaluate_info,
+                                loaded_block=loaded_block,
+                                env_dict=env_dict,
+                            ),
                         ),
                         partial(extract_generate_info_content, env_dict=env_dict),
                     ),
                     star_apply(merge_dict),
-                )
+                ),
             ),
             list,
         ),
-        loaded_block.root_ele.findall('generate_info')
+        loaded_block.root_ele.findall("generate_info"),
     )
 
 
@@ -561,29 +612,27 @@ def join_pkg_inner_softlink(link_str_list: List[str]) -> str:
 
 def check_contain_asterisk(value: str) -> bool:
     """检查串是否包含星号。"""
-    if '*' in value:
+    if "*" in value:
         return True
     return False
 
 
-def check_value(value: str,
-                package_check: bool,
-                package_attr: PackageAttr):
+def check_value(value: str, package_check: bool, package_attr: PackageAttr):
     """检查元素value属性。"""
-    if package_check and package_attr.get('suffix') == 'run':
+    if package_check and package_attr.get("suffix") == "run":
         if check_contain_asterisk(value):
             raise ContainAsteriskError(value)
 
 
 def get_dst_prefix(file_info: FileInfo, env: ParseEnv) -> str:
     """获取文件的前缀。"""
-    return os.path.join(env.delivery_dir, file_info['dst_path'])
+    return os.path.join(env.delivery_dir, file_info["dst_path"])
 
 
 def get_dst_target(file_info: FileInfo, env: ParseEnv) -> str:
     """获取文件的实际路径。"""
     dst_prefix = get_dst_prefix(file_info, env)
-    return os.path.join(dst_prefix, os.path.basename(file_info.get('value')))
+    return os.path.join(dst_prefix, os.path.basename(file_info.get("value")))
 
 
 def make_hash(filepath: str) -> str:
@@ -599,16 +648,16 @@ def config_hash(parsed_result: FileInfoParsedResult, env: ParseEnv):
     """配置hash值。"""
     file_info = parsed_result.file_info
     # 如果配置了configurable，需要计算文件的hash值
-    if file_info and file_info['configurable'] == 'TRUE':
+    if file_info and file_info["configurable"] == "TRUE":
         src_target = get_dst_target(file_info, env)
         hash_value = make_hash(src_target)
-        file_info['hash'] = hash_value
+        file_info["hash"] = hash_value
     return parsed_result
 
 
-def apply_func(func: Callable[[str], str],
-               value: Union[List[str], Set[str], str]
-               ) -> Union[List[str], Set[str], str]:
+def apply_func(
+    func: Callable[[str], str], value: Union[List[str], Set[str], str]
+) -> Union[List[str], Set[str], str]:
     """对一个字符串，或字符串序列，应用函数。"""
     # 如：pkg_softlink列表
     if isinstance(value, list):
@@ -619,33 +668,33 @@ def apply_func(func: Callable[[str], str],
     return func(value)
 
 
-REAL_PREFIX = 'real:'
+REAL_PREFIX = "real:"
 
 
 def join_dst_path(base: str, other: str) -> str:
     """联结dst_path。"""
-    if other.startswith('real:'):
-        other = other[len(REAL_PREFIX):]
+    if other.startswith("real:"):
+        other = other[len(REAL_PREFIX) :]
         return other
     return os.path.join(base, other)
 
 
-def evaluate_info(info: Dict[str, str],
-                  loaded_block: LoadedBlockElement,
-                  env_dict: EnvDict) -> Dict[str, str]:
+def evaluate_info(
+    info: Dict[str, str], loaded_block: LoadedBlockElement, env_dict: EnvDict
+) -> Dict[str, str]:
     """info元素求值。"""
-    dst_keys = ('dst_path',)
+    dst_keys = ("dst_path",)
 
     replace_env_func = partial(replace_env, env_dict)
     add_dst_path_func = partial(join_dst_path, loaded_block.dst_path)
 
     def split_pkg_softlink(key: str, value: str) -> Tuple[str, str]:
-        if key == 'pkg_softlink':
-            return key, value.split(';')
+        if key == "pkg_softlink":
+            return key, value.split(";")
         return key, value
 
     def upper_value(key: str, value: str) -> Tuple[str, str]:
-        if key == 'configurable':
+        if key == "configurable":
             return key, value.upper()
         return key, value
 
@@ -655,14 +704,14 @@ def evaluate_info(info: Dict[str, str],
         return key, value
 
     def replace_pkg_inner_softlink(key: str, value: str) -> Tuple[str, str]:
-        if key == 'pkg_inner_softlink':
-            return key, 'NA'
+        if key == "pkg_inner_softlink":
+            return key, "NA"
         return key, value
 
     def merge_feature(key: str, value: str) -> Tuple[str, Set[str]]:
-        if key in ('chip', 'feature'):
+        if key in ("chip", "feature"):
             config_features = config_feature_to_set(value, key)
-            return key, config_features | getattr(loaded_block, f'{key}s')
+            return key, config_features | getattr(loaded_block, f"{key}s")
         return key, value
 
     def eval_value(_key: str, value: str) -> str:
@@ -670,42 +719,47 @@ def evaluate_info(info: Dict[str, str],
             return apply_func(replace_env_func, value)
 
     eval_value_func = star_pipe(
-        upper_value, add_dst_path, replace_pkg_inner_softlink,
-        merge_feature, eval_value,
+        upper_value,
+        add_dst_path,
+        replace_pkg_inner_softlink,
+        merge_feature,
+        eval_value,
     )
 
     return {
         key: eval_value_func(key, value)
-        for key, value in
-        itertools.chain(
+        for key, value in itertools.chain(
             # 默认值配置
             [
-                ('dst_path', ''), ('configurable', 'FALSE'),
-                ('chip', None), ('feature', None), ('pkg_feature', None),
+                ("dst_path", ""),
+                ("configurable", "FALSE"),
+                ("chip", None),
+                ("feature", None),
+                ("pkg_feature", None),
             ],
-            info.items()
+            info.items(),
         )
     }
 
 
-def parse_dir_info_elements(loaded_block: LoadedBlockElement,
-                            default_config: Dict[str, str],
-                            package_attr: PackageAttr,
-                            env: ParseEnv) -> List[Dict[str, str]]:
+def parse_dir_info_elements(
+    loaded_block: LoadedBlockElement,
+    default_config: Dict[str, str],
+    package_attr: PackageAttr,
+    env: ParseEnv,
+) -> List[Dict[str, str]]:
     """解析dir_info元素。"""
-    dir_info_elements: List[ET.Element] = loaded_block.root_ele.findall('dir_info')
+    dir_info_elements: List[ET.Element] = loaded_block.root_ele.findall("dir_info")
     dir_infos = []
     for item in dir_info_elements:
         dir_config = default_config.copy()
         dir_config.update(item.attrib)
-        dir_config['module'] = dir_config.get('value')
+        dir_config["module"] = dir_config.get("value")
         for sub_item in list(item):
             dir_info = dir_config.copy()
             dir_info.update(sub_item.attrib)
             dir_info = evaluate_info(dir_info, loaded_block, env.env_dict)
-            check_value(
-                dir_info['value'], env.parse_option.package_check, package_attr
-            )
+            check_value(dir_info["value"], env.parse_option.package_check, package_attr)
             dir_infos.append(dir_info)
 
     return dir_infos
@@ -713,16 +767,18 @@ def parse_dir_info_elements(loaded_block: LoadedBlockElement,
 
 def get_target_name(target_conf) -> str:
     """获取目标名。"""
-    rename = target_conf.get('rename')
+    rename = target_conf.get("rename")
     if rename:
         return rename
 
-    value_list = target_conf.get('value').split('/')
+    value_list = target_conf.get("value").split("/")
     target_name = value_list[-1] if value_list[-1] else value_list[-2]
     return target_name
 
 
-def expand_dir(file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], str], env: ParseEnv):
+def expand_dir(
+    file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], str], env: ParseEnv
+):
     """
     如果file_info中配置的路径是文件夹，需要展开到文件
     """
@@ -730,23 +786,23 @@ def expand_dir(file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], st
     dir_info_list = []
     dst_target = get_dst_target_func(file_info)
 
-    value_list = file_info.get('value').split('/')
+    value_list = file_info.get("value").split("/")
     target_name = value_list[-1] if value_list[-1] else value_list[-2]
 
     # 这里把当前目录也加入到dir_info_list中
     dir_info_copy = file_info.copy()
-    dir_info_copy['module'] = file_info.get('value')
-    dir_info_copy['value'] = os.path.join(
-        file_info.get('install_path', ''), target_name
+    dir_info_copy["module"] = file_info.get("value")
+    dir_info_copy["value"] = os.path.join(
+        file_info.get("install_path", ""), target_name
     )
 
     # 子目录的权限按照xml中subdir_mod配置，如果没有配置subdir_mod按照install_mod配置
     subdir_mod = file_info.get("subdir_mod", None)
     if subdir_mod is not None:
-        dir_info_copy['install_mod'] = subdir_mod
+        dir_info_copy["install_mod"] = subdir_mod
     # 被展开的当前目录不需要设置softlink
-    dir_info_copy['install_softlink'] = ''
-    dir_info_copy['pkg_inner_softlink'] = ''
+    dir_info_copy["install_softlink"] = ""
+    dir_info_copy["pkg_inner_softlink"] = ""
     dir_info_list.append(dir_info_copy)
 
     for root, dirs, files in os.walk(dst_target, followlinks=True):
@@ -759,31 +815,35 @@ def expand_dir(file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], st
             dirname = os.path.join(root, name)
             # 如果是指向目录的软连接，则按照文件处理，无需在安装时创建目录，只需要卸载时删除就行
             if os.path.islink(dirname) and not need_dereference(file_info):
-                copy_file_info = create_file_info(dirname, dst_target, file_info, name, target_name)
+                copy_file_info = create_file_info(
+                    dirname, dst_target, file_info, name, target_name
+                )
                 # 被展开的子文件不需要设置softlink
-                copy_file_info['install_softlink'] = ''
-                copy_file_info['pkg_inner_softlink'] = ''
+                copy_file_info["install_softlink"] = ""
+                copy_file_info["pkg_inner_softlink"] = ""
                 deal_with_copy_all(copy_file_info, env.package_attr)
                 file_info_list.append(copy_file_info)
                 dirs_to_remove.append(name)
                 continue
             relative_dirname = os.path.relpath(dirname, dst_target)
             dir_info_copy = file_info.copy()
-            dir_info_copy['module'] = file_info.get('value')
-            dir_info_copy['value'] = os.path.join(
-                file_info.get('install_path', ''), target_name, relative_dirname
+            dir_info_copy["module"] = file_info.get("value")
+            dir_info_copy["value"] = os.path.join(
+                file_info.get("install_path", ""), target_name, relative_dirname
             )
             # 被展开的子目录不需要设置softlink
-            dir_info_copy['install_softlink'] = ''
-            dir_info_copy['pkg_inner_softlink'] = ''
+            dir_info_copy["install_softlink"] = ""
+            dir_info_copy["pkg_inner_softlink"] = ""
             # 子目录的权限按照xml中subdir_mod配置，如果没有配置subdir_mod按照install_mod配置
             subdir_mod = file_info.get("subdir_mod", None)
             if subdir_mod is not None:
-                dir_info_copy['install_mod'] = subdir_mod
+                dir_info_copy["install_mod"] = subdir_mod
             dir_info_list.append(dir_info_copy)
         for name in files:
             filename = os.path.join(root, name)
-            copy_file_info = create_file_info(filename, dst_target, file_info, name, target_name)
+            copy_file_info = create_file_info(
+                filename, dst_target, file_info, name, target_name
+            )
             deal_with_copy_all(copy_file_info, env.package_attr)
             file_info_list.append(copy_file_info)
 
@@ -796,28 +856,29 @@ def create_file_info(dirname, dst_target, file_info, name, target_name):
     relative_filename = os.path.relpath(dirname, dst_target)
     relative_dir_name = os.path.split(relative_filename)[0]
     copy_file_info = file_info.copy()
-    copy_file_info['value'] = name
-    copy_file_info['src_path'] = os.path.join(
-        file_info['src_path'], file_info['value'], relative_dir_name
+    copy_file_info["value"] = name
+    copy_file_info["src_path"] = os.path.join(
+        file_info["src_path"], file_info["value"], relative_dir_name
     )
-    copy_file_info['dst_path'] = os.path.join(
-        file_info['dst_path'], target_name, relative_dir_name
+    copy_file_info["dst_path"] = os.path.join(
+        file_info["dst_path"], target_name, relative_dir_name
     )
-    copy_file_info['install_path'] = os.path.join(
-        file_info.get('install_path', ''), target_name, relative_dir_name
+    copy_file_info["install_path"] = os.path.join(
+        file_info.get("install_path", ""), target_name, relative_dir_name
     )
     return copy_file_info
 
 
-def expand_file_info_asterisk(parsed_result: FileInfoParsedResult,
-                              env: ParseEnv) -> Iterator[FileInfoParsedResult]:
+def expand_file_info_asterisk(
+    parsed_result: FileInfoParsedResult, env: ParseEnv
+) -> Iterator[FileInfoParsedResult]:
     """展开FileInfoParsedResult中的星号。"""
     file_info = parsed_result.file_info
-    if check_contain_asterisk(file_info.get('value', '')):
+    if check_contain_asterisk(file_info.get("value", "")):
         dst_prefix = get_dst_prefix(file_info, env)
         dst_targets = sorted(glob.glob(get_dst_target(file_info, env)))
-        if 'exclude' in file_info:
-            exclude = list(map(methodcaller('strip'), file_info['exclude'].split(';')))
+        if "exclude" in file_info:
+            exclude = list(map(methodcaller("strip"), file_info["exclude"].split(";")))
         else:
             exclude = []
         for dst_target in dst_targets:
@@ -825,12 +886,12 @@ def expand_file_info_asterisk(parsed_result: FileInfoParsedResult,
             if value in exclude:
                 continue
             new_file_info = file_info.copy()
-            new_file_info['value'] = value
-            if 'pkg_inner_softlink' in new_file_info:
+            new_file_info["value"] = value
+            if "pkg_inner_softlink" in new_file_info:
                 # pkg_inner_softlink中的特殊变量$(FILE)替换为展开后的文件名
-                pkg_inner_softlink = new_file_info['pkg_inner_softlink']
-                new_file_info['pkg_inner_softlink'] = pkg_inner_softlink.replace(
-                    '$(FILE)', os.path.basename(dst_target)
+                pkg_inner_softlink = new_file_info["pkg_inner_softlink"]
+                new_file_info["pkg_inner_softlink"] = pkg_inner_softlink.replace(
+                    "$(FILE)", os.path.basename(dst_target)
                 )
             yield parsed_result._replace(file_info=new_file_info)
     else:
@@ -844,14 +905,16 @@ def trans_to_stream(item: Any) -> Iterator[Any]:
 
 def need_dereference(file_info: FileInfo) -> bool:
     """是否需要解引用。"""
-    if 'dereference' in file_info:
+    if "dereference" in file_info:
         return True
     return False
 
 
-def need_expand(file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], str]) -> bool:
+def need_expand(
+    file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], str]
+) -> bool:
     """是否需要展开子目录。"""
-    if file_info.get('entity') == 'true':
+    if file_info.get("entity") == "true":
         return False
     dst_target = get_dst_target_func(file_info)
     if os.path.isdir(dst_target):
@@ -865,21 +928,23 @@ def need_expand(file_info: FileInfo, get_dst_target_func: Callable[[FileInfo], s
 
 def deal_with_copy_all(file_info: FileInfo, package_attr: PackageAttr):
     """处理copy_all选项。"""
-    if not package_attr.get('copy_all'):
+    if not package_attr.get("copy_all"):
         return
-    if file_info.get('pkg_inner_softlink'):
+    if file_info.get("pkg_inner_softlink"):
         raise PkgInnerSoftlinkNotAllowed(file_info)
-    file_info['dst_path'] = file_info['install_path']
-    if file_info.get('install_softlink'):
-        file_info['pkg_softlink'] = file_info['install_softlink'].split(';')
-    if file_info.get('install_mod'):
-        file_info['pkg_mod'] = file_info['install_mod']
+    file_info["dst_path"] = file_info["install_path"]
+    if file_info.get("install_softlink"):
+        file_info["pkg_softlink"] = file_info["install_softlink"].split(";")
+    if file_info.get("install_mod"):
+        file_info["pkg_mod"] = file_info["install_mod"]
 
 
-def expand_file_info(parsed_result: FileInfoParsedResult,
-                     use_move: bool,
-                     get_dst_target_func: Callable[[FileInfo], str],
-                     env: ParseEnv) -> FileInfoParsedResult:
+def expand_file_info(
+    parsed_result: FileInfoParsedResult,
+    use_move: bool,
+    get_dst_target_func: Callable[[FileInfo], str],
+    env: ParseEnv,
+) -> FileInfoParsedResult:
     """展开FileInfoParsedResult中的目录。"""
     deal_with_copy_all(parsed_result.file_info, env.package_attr)
 
@@ -890,7 +955,7 @@ def expand_file_info(parsed_result: FileInfoParsedResult,
         # 实测发现，对于opp包，整体目录cp的安装速度要快于目录中各文件mv
         # 可能的原因是，cp遍历目录的速度较快，并且目录中的文件都比较小。mv依赖shell迭代目录中的所有文件。
         return FileInfoParsedResult(
-            merge_dict(file_info, {'is_dir': True}), [], dir_infos, expand_infos
+            merge_dict(file_info, {"is_dir": True}), [], dir_infos, expand_infos
         )
 
     if use_move:
@@ -906,22 +971,24 @@ def trans_file_info_to_result(file_info: FileInfo) -> FileInfoParsedResult:
     return FileInfoParsedResult(file_info, [], [], [])
 
 
-def parse_file_element(file_ele: ET.Element,
-                       file_config: Dict[str, str],
-                       loaded_block: LoadedBlockElement,
-                       package_attr: PackageAttr,
-                       env: ParseEnv) -> Iterator[FileInfoParsedResult]:
+def parse_file_element(
+    file_ele: ET.Element,
+    file_config: Dict[str, str],
+    loaded_block: LoadedBlockElement,
+    package_attr: PackageAttr,
+    env: ParseEnv,
+) -> Iterator[FileInfoParsedResult]:
     """解析file元素。"""
     file_info = merge_dict(file_config, file_ele.attrib)
     file_info = evaluate_info(file_info, loaded_block, env.env_dict)
 
-    if package_attr.get('expand_asterisk', False):
+    if package_attr.get("expand_asterisk", False):
         expand_asterisk_func = partial(expand_file_info_asterisk, env=env)
     else:
         expand_asterisk_func = trans_to_stream
 
-    if 'install_path' not in file_info:
-        file_info['install_path'] = ''
+    if "install_path" not in file_info:
+        file_info["install_path"] = ""
 
     trans_file_info_func = pipe(
         trans_file_info_to_result,
@@ -933,25 +1000,27 @@ def parse_file_element(file_ele: ET.Element,
                 expand_file_info,
                 use_move=loaded_block.use_move,
                 get_dst_target_func=partial(get_dst_target, env=env),
-                env=env
-            )
+                env=env,
+            ),
         ),
     )
 
     yield from trans_file_info_func(file_info)
 
 
-def parse_file_info_elements(loaded_block: LoadedBlockElement,
-                             default_config: Dict[str, str],
-                             package_attr: PackageAttr,
-                             env: ParseEnv) -> Iterator[FileInfoParsedResult]:
+def parse_file_info_elements(
+    loaded_block: LoadedBlockElement,
+    default_config: Dict[str, str],
+    package_attr: PackageAttr,
+    env: ParseEnv,
+) -> Iterator[FileInfoParsedResult]:
     """解析file_info元素。"""
-    file_info_elements: List[ET.Element] = loaded_block.root_ele.findall('file_info')
+    file_info_elements: List[ET.Element] = loaded_block.root_ele.findall("file_info")
     for file_info_ele in file_info_elements:
         file_config = merge_dict(
             default_config,
             file_info_ele.attrib,
-            {'module': file_info_ele.attrib.get('value')}
+            {"module": file_info_ele.attrib.get("value")},
         )
 
         for sub_item in list(file_info_ele):
@@ -960,43 +1029,51 @@ def parse_file_info_elements(loaded_block: LoadedBlockElement,
             )
 
 
-def get_path_infos(pkg_ele: ET.Element,
-                   default_config: Dict[str, str],
-                   loaded_block: LoadedBlockElement,
-                   env: ParseEnv) -> List[Dict[str, str]]:
+def get_path_infos(
+    pkg_ele: ET.Element,
+    default_config: Dict[str, str],
+    loaded_block: LoadedBlockElement,
+    env: ParseEnv,
+) -> List[Dict[str, str]]:
     """获取路径信息"""
     return invoke(
         pipe(
             list,
-            partial(map, attrgetter('attrib')),
+            partial(map, attrgetter("attrib")),
             partial(map, partial(merge_dict, default_config)),
             partial(
                 map,
-                partial(evaluate_info, loaded_block=loaded_block, env_dict=env.env_dict, pkg=True)
+                partial(
+                    evaluate_info,
+                    loaded_block=loaded_block,
+                    env_dict=env.env_dict,
+                    pkg=True,
+                ),
             ),
         ),
-        pkg_ele
+        pkg_ele,
     )
 
 
-def get_path_infos_by_elements(pkg_elements: List[ET.Element],
-                               default_config: Dict[str, str],
-                               loaded_block: LoadedBlockElement,
-                               env: ParseEnv) -> List[Dict[str, str]]:
+def get_path_infos_by_elements(
+    pkg_elements: List[ET.Element],
+    default_config: Dict[str, str],
+    loaded_block: LoadedBlockElement,
+    env: ParseEnv,
+) -> List[Dict[str, str]]:
     """根据节点列表获取路径信息"""
-    return flatten([
-        get_path_infos(pkg_ele, default_config, loaded_block, env)
-        for pkg_ele in pkg_elements
-    ])
+    return flatten(
+        [
+            get_path_infos(pkg_ele, default_config, loaded_block, env)
+            for pkg_ele in pkg_elements
+        ]
+    )
 
 
 def parse_pkg_mods(path_infos: List[Dict[str, str]]) -> List[PkgMod]:
     """解析pkg元素。"""
     return [
-        PkgMod(
-            path_info['value'],
-            int(path_info['pkg_mod'], 8)
-        )
+        PkgMod(path_info["value"], int(path_info["pkg_mod"], 8))
         for path_info in path_infos
     ]
 
@@ -1005,17 +1082,19 @@ def parse_pkg_softlinks(path_infos: List[Dict[str, str]]) -> List[PkgSoftlink]:
     """解析pkg_softlink元素。"""
     return [
         PkgSoftlink(
-            dst_path=path_info['value'],
-            src_path=path_info['src_path'],
+            dst_path=path_info["value"],
+            src_path=path_info["src_path"],
         )
         for path_info in path_infos
     ]
 
 
-def parse_paths_element(root_ele: ET.Element,
-                        tag_name: str,
-                        ex: PackageError,
-                        parse_func: Callable[[List[ET.Element]], List]) -> List:
+def parse_paths_element(
+    root_ele: ET.Element,
+    tag_name: str,
+    ex: PackageError,
+    parse_func: Callable[[List[ET.Element]], List],
+) -> List:
     """解析路径列表元素。"""
     tag_elements = root_ele.findall(tag_name)
     if len(tag_elements) > 1:
@@ -1029,17 +1108,17 @@ def unique_infos(infos: Iterable) -> List[Dict[str, str]]:
     cache: Set[str] = set()
     new_infos = []
     for info in infos:
-        if info['value'] in cache:
+        if info["value"] in cache:
             continue
-        cache.add(info['value'])
+        cache.add(info["value"])
         new_infos.append(info)
 
     return new_infos
 
 
-def parse_block_config(loaded_block: LoadedBlockElement,
-                       package_attr: PackageAttr,
-                       parse_env: ParseEnv):
+def parse_block_config(
+    loaded_block: LoadedBlockElement, package_attr: PackageAttr, parse_env: ParseEnv
+):
     """解析块配置。"""
     default_config = copy.copy(loaded_block.attrs)
     default_config.update(loaded_block.root_ele.attrib)
@@ -1053,8 +1132,10 @@ def parse_block_config(loaded_block: LoadedBlockElement,
     file_info_results = list(
         chain(
             parse_file_info_elements(
-                loaded_block, default_config,
-                package_attr, parse_env,
+                loaded_block,
+                default_config,
+                package_attr,
+                parse_env,
             )
         )
     )
@@ -1063,22 +1144,26 @@ def parse_block_config(loaded_block: LoadedBlockElement,
         get_path_infos_by_elements,
         default_config=default_config,
         loaded_block=loaded_block,
-        env=parse_env
+        env=parse_env,
     )
 
     parse_pkg_mods_func = pipe(get_path_infos_func, parse_pkg_mods)
     pkg_mods = parse_paths_element(
         loaded_block.root_ele,
-        'pkg_mod',
+        "pkg_mod",
         MultiPkgModError(),
         # tar.gz才处理pkg_mod元素
-        lambda x: parse_pkg_mods_func(x) if package_attr.get('suffix') == 'tar.gz' else [],
+        lambda x: parse_pkg_mods_func(x)
+        if package_attr.get("suffix") == "tar.gz"
+        else [],
     )
 
     parse_pkg_softlinks_func = pipe(get_path_infos_func, parse_pkg_softlinks)
     pkg_softlinks = parse_paths_element(
-        loaded_block.root_ele, 'pkg_softlink',
-        MultiPkgSoftlinkError(), parse_pkg_softlinks_func,
+        loaded_block.root_ele,
+        "pkg_softlink",
+        MultiPkgSoftlinkError(),
+        parse_pkg_softlinks_func,
     )
 
     generate_infos = parse_generate_infos_by_loaded_block(
@@ -1087,12 +1172,12 @@ def parse_block_config(loaded_block: LoadedBlockElement,
 
     return BlockConfig(
         unique_infos(
-            itertools.chain(dir_infos,
-                            flatten(result.dir_infos for result in file_info_results)
-                            )
+            itertools.chain(
+                dir_infos, flatten(result.dir_infos for result in file_info_results)
+            )
         ),
-        list(flatten(map(attrgetter('move_infos'), file_info_results))),
-        list(flatten(map(attrgetter('expand_infos'), file_info_results))),
+        list(flatten(map(attrgetter("move_infos"), file_info_results))),
+        list(flatten(map(attrgetter("expand_infos"), file_info_results))),
         [result.file_info for result in file_info_results if result.file_info],
         pkg_mods,
         pkg_softlinks,
@@ -1100,14 +1185,16 @@ def parse_block_config(loaded_block: LoadedBlockElement,
     )
 
 
-def make_loaded_block_element(root_ele: ET.Element,
-                              dst_path: str = '') -> LoadedBlockElement:
+def make_loaded_block_element(
+    root_ele: ET.Element, dst_path: str = ""
+) -> LoadedBlockElement:
     """创建加载后的块配置。"""
     return LoadedBlockElement(root_ele, False, dst_path, set(), set(), {})
 
 
-def parse_block_element(block_ele: ET.Element,
-                        block_info_attr: Dict[str, str]) -> BlockElement:
+def parse_block_element(
+    block_ele: ET.Element, block_info_attr: Dict[str, str]
+) -> BlockElement:
     """解析单个块配置。"""
 
     def filter_attrs(attrs: Dict[str, str]) -> Dict[str, str]:
@@ -1117,12 +1204,12 @@ def parse_block_element(block_ele: ET.Element,
         return {
             key: value
             for key, value in attrs.items()
-            if key not in ('dst_path', 'block_conf_path')
+            if key not in ("dst_path", "block_conf_path")
         }
 
     def with_merged_attrs(attrs: Dict[str, str]) -> BlockElement:
-        name = attrs.get('name')
-        block_conf_path = attrs.get('block_conf_path')
+        name = attrs.get("name")
+        block_conf_path = attrs.get("block_conf_path")
 
         if not name:
             raise BlockConfigError("block's name is not set!")
@@ -1133,10 +1220,10 @@ def parse_block_element(block_ele: ET.Element,
         return BlockElement(
             name=name,
             block_conf_path=block_conf_path,
-            dst_path=attrs.get('dst_path', ''),
-            chips=config_feature_to_set(attrs.get('chip'), 'chip'),
-            features=config_feature_to_set(attrs.get('feature'), 'feature'),
-            attrs=filter_attrs(attrs)
+            dst_path=attrs.get("dst_path", ""),
+            chips=config_feature_to_set(attrs.get("chip"), "chip"),
+            features=config_feature_to_set(attrs.get("feature"), "feature"),
+            attrs=filter_attrs(attrs),
         )
 
     return with_merged_attrs(merge_dict(block_info_attr, block_ele.attrib))
@@ -1144,17 +1231,19 @@ def parse_block_element(block_ele: ET.Element,
 
 def parse_block_info(block_info: ET.Element) -> List[BlockElement]:
     """解析块配置。"""
+
     def parse_block_elements(block_elements: List[ET.Element]) -> List[BlockElement]:
         return [
-            parse_block_element(block_ele, block_info.attrib) for block_ele in block_elements
+            parse_block_element(block_ele, block_info.attrib)
+            for block_ele in block_elements
         ]
 
     return parse_block_elements(list(block_info))
 
 
-def load_block_element(parse_env: ParseEnv,
-                       package_attr: PackageAttr,
-                       block_element: BlockElement) -> LoadedBlockElement:
+def load_block_element(
+    parse_env: ParseEnv, package_attr: PackageAttr, block_element: BlockElement
+) -> LoadedBlockElement:
     """加载块配置。"""
 
     def with_filepath(block_xml: str):
@@ -1164,69 +1253,71 @@ def load_block_element(parse_env: ParseEnv,
         try:
             return LoadedBlockElement(
                 root_ele=ET.parse(block_xml).getroot(),
-                use_move=package_attr.get('use_move', False),
+                use_move=package_attr.get("use_move", False),
                 **{
                     name: getattr(block_element, name)
                     for name in BLOCK_ELEMENT_PASS_THROUGH_ARGS
-                }
+                },
             )
         except Exception:
-            raise BlockConfigError(f"dependent block configuration {block_xml} parse failed!")
+            raise BlockConfigError(
+                f"dependent block configuration {block_xml} parse failed!"
+            )
 
     return with_filepath(
         os.path.join(
-            parse_env.pkg_config_dir, 'module', 'ascend', f'{block_element.name}.xml'
+            parse_env.pkg_config_dir, "module", "ascend", f"{block_element.name}.xml"
         )
     )
 
 
-def parse_blocks(root_ele: ET.Element,
-                 package_attr: PackageAttr,
-                 parse_env: ParseEnv) -> List[BlockConfig]:
+def parse_blocks(
+    root_ele: ET.Element, package_attr: PackageAttr, parse_env: ParseEnv
+) -> List[BlockConfig]:
     """解析块列表。"""
     return [
-        parse_block_config(
-            loaded_block, package_attr, parse_env
-        )
+        parse_block_config(loaded_block, package_attr, parse_env)
         for loaded_block in itertools.chain(
             [make_loaded_block_element(root_ele)],
             map(
                 partial(load_block_element, parse_env, package_attr),
                 chain.from_iterable(
                     map(parse_block_info, root_ele.findall("block_info"))
-                )
-            )
+                ),
+            ),
         )
     ]
 
 
 def read_version_info(delivery_dir: str, package_attr: PackageAttr) -> Tuple[str, str]:
-    if 'install_script' not in package_attr:
+    if "install_script" not in package_attr:
         raise InstallScriptNotInPackageInfo()
-    install_script = package_attr['install_script']
-    install_script_paths = install_script.split('/')
+    install_script = package_attr["install_script"]
+    install_script_paths = install_script.split("/")
     if len(install_script_paths) < 2:
         raise InstallScriptFormatError()
 
-    version_path = os.path.join(delivery_dir, *install_script_paths[:-2], "version.info")
+    version_path = os.path.join(
+        delivery_dir, *install_script_paths[:-2], "version.info"
+    )
     if not os.path.isfile(version_path):
         raise VersionInfoNotExist()
 
-    with open(version_path, 'r') as file:
+    with open(version_path, "r") as file:
         line1 = file.readline().strip()
         line2 = file.readline().strip()
     version = line1.split("=")[1]
     version_dir = line2.split("=")[1]
-    m = re.match(r'[.a-zA-Z0-9]+$', version) or re.match(r'[-a-zA-Z.0-9]+$', version)
+    m = re.match(r"[.a-zA-Z0-9]+$", version) or re.match(r"[-a-zA-Z.0-9]+$", version)
     if not m:
         raise VersionFormatNotMatch()
-    
+
     return version, version_dir
 
 
-def get_version_version_dir(args: Namespace,
-                            delivery_dir: str,
-                            package_attr: PackageAttr) -> Tuple[str, Optional[str]]:
+def get_version_version_dir(
+    args: Namespace, delivery_dir: str, package_attr: PackageAttr
+) -> Tuple[str, Optional[str]]:
     if args.version_dir:
         version = args.version_dir
         version_dir = args.version_dir
@@ -1237,11 +1328,13 @@ def get_version_version_dir(args: Namespace,
     return version, version_dir
 
 
-def parse_xml_config(pkg_config_dir: str,
-                     config_relative_path: str,
-                     delivery_dir: str,
-                     parse_option: ParseOption,
-                     args: Namespace) -> Tuple[bool, XmlConfig]:
+def parse_xml_config(
+    pkg_config_dir: str,
+    config_relative_path: str,
+    delivery_dir: str,
+    parse_option: ParseOption,
+    args: Namespace,
+) -> Tuple[bool, XmlConfig]:
     """解析打包xml配置。"""
     filepath = os.path.join(pkg_config_dir, config_relative_path)
     try:
@@ -1258,13 +1351,20 @@ def parse_xml_config(pkg_config_dir: str,
     try:
         version, version_dir = get_version_version_dir(args, delivery_dir, package_attr)
     except InstallScriptNotInPackageInfo:
-        CommLog.cilog_error("The install_script is not configured in the package_info in %s!", filepath)
+        CommLog.cilog_error(
+            "The install_script is not configured in the package_info in %s!", filepath
+        )
         return False, None
     except InstallScriptFormatError:
-        CommLog.cilog_error("The install_script format is illegel in %s! More directory levels are needed.", filepath)
+        CommLog.cilog_error(
+            "The install_script format is illegel in %s! More directory levels are needed.",
+            filepath,
+        )
         return False, None
     except VersionInfoNotExist as ex:
-        CommLog.cilog_error("The version.info file %s does not exist in %s!", str(ex), filepath)
+        CommLog.cilog_error(
+            "The version.info file %s does not exist in %s!", str(ex), filepath
+        )
         return False, None
 
     timestamp = get_timestamp(args)
@@ -1275,7 +1375,8 @@ def parse_xml_config(pkg_config_dir: str,
     except ParseOsArchError:
         CommLog.cilog_error(
             "os_arch %s is not correctly configured: %s!",
-            parse_option.os_arch, filepath
+            parse_option.os_arch,
+            filepath,
         )
         return False, None
 
@@ -1283,18 +1384,21 @@ def parse_xml_config(pkg_config_dir: str,
         env_dict, parse_option, pkg_config_dir, delivery_dir, package_attr
     )
 
-    blocks = parse_blocks(
-        xml_root, package_attr, parse_env
-    )
+    blocks = parse_blocks(xml_root, package_attr, parse_env)
 
     if is_multi_version(version_dir):
         fill_is_common_path_func = partial(
-            fill_is_common_path, target_env=env_dict.get('TARGET_ENV')
+            fill_is_common_path, target_env=env_dict.get("TARGET_ENV")
         )
     else:
         fill_is_common_path_func = iter
 
     return True, XmlConfig(
-        default_config, package_attr, None, blocks, version, None,
-        PackerConfig(fill_is_common_path_func)
+        default_config,
+        package_attr,
+        None,
+        blocks,
+        version,
+        None,
+        PackerConfig(fill_is_common_path_func),
     )

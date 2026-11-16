@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This program is free software, you can redistribute it and/or modify it under the terms and conditions of
@@ -9,11 +9,12 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Purpose:
 # Copyright Huawei Technologies Co., Ltd. 2010-2025. All rights reserved.
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 import hashlib
+
 
 def cal_bin_hash(buf):
     sha256_hash = hashlib.sha256()
@@ -29,10 +30,10 @@ def cal_image_hash(f):
     return sha256_hash.digest()
 
 
-def to_bytes(n, length, endianness='big'):
-    h = '%x' % n
-    s = ('0' * (len(h) % 2) + h).zfill(length * 2).decode('hex')
-    return s if endianness == 'big' else s[::-1]
+def to_bytes(n, length, endianness="big"):
+    h = "%x" % n
+    s = ("0" * (len(h) % 2) + h).zfill(length * 2).decode("hex")
+    return s if endianness == "big" else s[::-1]
 
 
 def get_filelen(f):
