@@ -367,7 +367,6 @@ def test_block_element_and_blocks_and_read_version_info_and_parse_xml_config(
             "TARGET_ENV": "arch-linux"
         },
     )
-    monkeypatch.setattr(pkg_parser, "is_multi_version", lambda v: bool(v))
 
     args = Namespace(
         version_dir=None,
@@ -876,7 +875,6 @@ def test_parse_xml_config_invalid_xml(tmp_path: Path, monkeypatch):
         "parse_env_dict",
         lambda *args, **kwargs: {"TARGET_ENV": "arch-linux"},
     )
-    monkeypatch.setattr(pkg_parser, "is_multi_version", lambda v: bool(v))
 
     # XML解析失败时返回 (False, None)
     success, result = pkg_parser.parse_xml_config(

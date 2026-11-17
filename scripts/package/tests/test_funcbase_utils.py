@@ -49,3 +49,43 @@ class TestInvokeExtended:
         """Test invoke function."""
         result = funcbase.invoke(list, iter([1, 2, 3]))
         assert result == [1, 2, 3]
+
+
+def test_funcbase_basic_helpers_and_high_order():
+    const_f = funcbase.constant(10)
+    assert const_f() == 10
+
+    def plus1(x):
+        return x + 1
+
+    def mul2(x):
+        return x * 2
+
+    pipe_f = funcbase.pipe(plus1, mul2)
+    assert pipe_f(3) == 8
+
+    ident = funcbase.identity("x")
+    assert ident == "x"
+
+    # dispatch / invoke / side_effect / star_apply / any_ / not_
+    d = funcbase.dispatch(lambda x: x + 1, lambda x: x + 2)
+    assert list(d(1)) == [2, 3]
+
+    assert funcbase.invoke(lambda x, y: x + y, 1, 2) == 3
+
+    calls = []
+
+    def rec(x):
+        calls.append(x)
+
+    se = funcbase.side_effect(rec)
+    assert se(5) == 5 and calls == [5]
+
+    sa = funcbase.star_apply(lambda a, b: a + b)
+    assert sa((1, 2)) == 3
+
+    any_f = funcbase.any_(lambda x: False, lambda x: x > 0)
+    assert any_f(1) is True
+
+    not_f = funcbase.not_(lambda x: x > 0)
+    assert not_f(0) is True and not_f(1) is False

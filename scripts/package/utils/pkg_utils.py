@@ -111,6 +111,10 @@ class VersionInfoNotExist(PackageError):
     """version.info文件不存在。"""
 
 
+class VersionFormatNotMatch(PackageError):
+    """版本格式未匹配。"""
+
+
 def flatten(list_of_lists):
     """Flatten one level of nesting"""
     return chain.from_iterable(list_of_lists)

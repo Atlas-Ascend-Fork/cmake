@@ -49,6 +49,7 @@ from utils.pkg_utils import (
     MultiPkgModError,
     PkgInnerSoftlinkNotAllowed,
     ParseOsArchError,
+    VersionFormatNotMatch,
     VersionInfoNotExist,
     config_feature_to_set,
     flatten,
@@ -58,12 +59,6 @@ from utils.pkg_utils import (
 )
 from utils.funcbase import constant, dispatch, invoke, pipe, star_apply
 from utils.comm_log import CommLog
-from version_info import (
-    VersionInfo,
-    VersionXml,
-    VersionFormatNotMatch,
-    is_multi_version,
-)
 
 # 环境变量字典
 EnvDict = Dict[str, str]
@@ -203,10 +198,8 @@ class XmlConfig(NamedTuple):
 
     default_config: Dict[str, str]
     package_attr: PackageAttr
-    version_info: VersionInfo
     blocks: List[BlockConfig]
     version: str
-    version_xml: Optional[VersionXml]
     packer_config: PackerConfig
 
     def _collect_list(self, list_name):
@@ -1386,7 +1379,8 @@ def parse_xml_config(
 
     blocks = parse_blocks(xml_root, package_attr, parse_env)
 
-    if is_multi_version(version_dir):
+    # version_dir 有值即为多版本打包，启用公共路径标记。
+    if version_dir:
         fill_is_common_path_func = partial(
             fill_is_common_path, target_env=env_dict.get("TARGET_ENV")
         )
@@ -1396,9 +1390,7 @@ def parse_xml_config(
     return True, XmlConfig(
         default_config,
         package_attr,
-        None,
         blocks,
         version,
-        None,
         PackerConfig(fill_is_common_path_func),
     )
