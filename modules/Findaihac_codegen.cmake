@@ -20,7 +20,7 @@ find_package_handle_standard_args(aihac_codegen
         _CANN_AIHAC_CODEGEN_SHARED_LIBRARY
 )
 
-if(aihac_codegen_FOUND)
+if(aihac_codegen_FOUND AND NOT TARGET aihac_codegen)
     add_library(aihac_codegen SHARED IMPORTED)
     set_target_properties(aihac_codegen PROPERTIES
         IMPORTED_LOCATION "${_CANN_AIHAC_CODEGEN_SHARED_LIBRARY}"
