@@ -44,8 +44,17 @@ endif()
 # 2. Compile Flags & Optimization
 # ==========================================================================================================
 include(${CMAKE_CURRENT_LIST_DIR}/protobuf_sym_rename.cmake)
+
+# libascend_protobuf.so 符号拦截(黑名单模式)：仅隐藏 pb::CppFeatures 系列符号。该系列来自 protobuf 内建
+# cpp_features.proto(package pb)，无命名空间前缀(-Dgoogle=ascend_private 与 -D 宏重命名均无法覆盖)，
+# 与用户自有 protobuf 同进程混载时存在符号插入风险；其余符号导出面保持不变，不做收窄，
+# TableStruct_*/descriptor_table_* 的隔离由 protobuf_sym_rename.cmake 的编译期 _25_1_0 重命名承担。
+# 模式说明：按原始符号名逐 mangled 形态枚举：_ZN2pb/_ZNK2pb(成员函数与静态成员)、_ZTVN2pb/_ZTIN2pb/
+# _ZTSN2pb(vtable/typeinfo/typeinfo name)、_ZGVN2pb(guard variable)；
+set(ASCEND_PROTOBUF_VER_FILE ${CMAKE_CURRENT_LIST_DIR}/libascend_protobuf_export.ver)
+
 set(SECURITY_COMPILE_OPT "-Wl,-z,relro,-z,now,-z,noexecstack -s -Wl,-Bsymbolic")
-set(PROTOBUF_SHARED_CXXFLAGS "${SECURITY_COMPILE_OPT} -Wno-maybe-uninitialized -Wno-unused-parameter -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_ABI} -O2 -Dgoogle=ascend_private ${PROTOBUF_SYM_RENAME}")
+set(PROTOBUF_SHARED_CXXFLAGS "${SECURITY_COMPILE_OPT} -Wno-maybe-uninitialized -Wno-unused-parameter -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_ABI} -O2 -Dgoogle=ascend_private ${PROTOBUF_SYM_RENAME} -Wl,--version-script=${ASCEND_PROTOBUF_VER_FILE}")
 set(PROTOBUF_STATIC_CXXFLAGS "-fvisibility=hidden -fvisibility-inlines-hidden -Wno-maybe-uninitialized -Wno-unused-parameter -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 -D_GLIBCXX_USE_CXX11_ABI=${CANN_CXX11_ABI} -O2 -Dgoogle=ascend_private ${PROTOBUF_SYM_RENAME}")
 
 if(ENABLE_ASAN)
