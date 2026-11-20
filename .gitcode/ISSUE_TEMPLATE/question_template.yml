@@ -1,0 +1,28 @@
+name: 问题咨询 (Question)
+description: 使用方法、行为确认、最佳实践类问题咨询。
+title: "[Question|问题咨询]: "
+labels: ["question"]
+type: "咨询"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提出问题，我们将安排人答复！
+        - 咨询类 issue 不等于缺陷；若讨论后确认为缺陷，请改用「缺陷反馈」模板补充复现信息
+        - 建议先查阅 docs/ 目录文档与已有 issue，可能已有答案
+
+  - type: textarea
+    attributes:
+      label: 问题描述
+      description: 想确认的行为或遇到的疑问；如与版本/环境相关，请在描述中一并说明 CMake 版本、生成器、CANN 版本等信息
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 已尝试的方法与相关资料
+      description: 已查阅的文档章节、已尝试的做法及结果；相关链接（可选）
+      placeholder: ""
+    validations:
+      required: false

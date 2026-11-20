@@ -1,0 +1,67 @@
+name: 文档反馈 (Documentation)
+description: 文档缺陷（渲染错误、命令错误、示例失败、描述不准确）、内容缺失或改进建议。
+title: "[Documentation|文档反馈]: "
+labels: ["documentation"]
+type: "文档"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢帮助改进 CANN 文档！请填写以下信息，便于快速定位对应文档与章节。
+        - 提交前请先搜索是否已有相同文档反馈
+        - 文档缺陷类（链接失效、命令错误、示例跑不通、渲染错误）将优先处理
+
+  - type: dropdown
+    attributes:
+      label: 文档类型
+      description: 本次反馈的类别
+      options:
+        - 缺陷修正（渲染错误 / 命令错误 / 示例失败 / 描述不准确 / 链接失效）
+        - 内容补充（缺少关键说明 / 步骤缺失）
+        - 新增文档
+        - 结构优化（目录调整 / 重复内容整合）
+        - 其它（请在问题描述中说明）
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 文档路径或链接
+      description: 文档所在仓库及路径，或文档站点链接；可同时提交多个文档，每行一个
+      placeholder: |
+        https://gitcode.com/cann/cmake/blob/master/docs/xxx.md
+        https://www.hiascend.com/document/detail/zh/canncommercial/xxx
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 问题位置与片段
+      description: 出错的章节 / 行号 / 表格 / 架构图，可直接粘贴原文片段或截图
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 问题描述
+      description: 现有内容哪里有误、缺失或难以理解；若涉及命令或示例，请说明实际执行结果
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 期望内容或改进建议
+      description: 期望的正确表述或希望补充的内容，欢迎直接给出建议改法
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 相关资料
+      description: 相关截图、官方参考链接、关联 issue/PR
+      placeholder: ""
+    validations:
+      required: false

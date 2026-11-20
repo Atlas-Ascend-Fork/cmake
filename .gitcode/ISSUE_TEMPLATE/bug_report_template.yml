@@ -1,0 +1,167 @@
+name: 缺陷反馈 (Bug Report)
+description: 构建、打包、安装、CI 等行为不符合预期时，请使用此模板提交缺陷。
+title: "[Bug-Report|缺陷反馈]: "
+labels: ["bug-report"]
+type: "缺陷"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈缺陷！为提高定位与处理效率，请尽量提供可复现的最小工程与关键日志。
+        - 提交前请先搜索已有 issue，避免重复提交
+        - 与昇腾硬件 / CANN 版本无关的问题，环境信息相应子项选「不涉及」
+        - 提供基线 commit 号有助于快速定位引入点
+
+  - type: dropdown
+    attributes:
+      label: 所属组件
+      description: 问题涉及的模块，便于快速分派给对应维护者（不确定请选其它）
+      options:
+        - 编译入口与环境（build.sh / superbuild / toolchain）
+        - 外部工程与 Find 模块（third_party/ modules/）
+        - 公共 CMake 函数与版本信息（function/ / scripts/version）
+        - 打包与交付（package / CPack / 多架构合包）
+        - 签名与镜像工具（sign / signtool）
+        - 安装脚本（scripts/install）
+        - 测试 / 静态检查 / CI（pytest / IWYU / pre-commit / workflow）
+        - 其它（请在问题描述中说明）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 操作系统 / OS
+      description: 复现环境所在的操作系统与架构
+      options:
+        - macOS
+        - Windows
+        - openEuler (x86_64)
+        - openEuler (aarch64)
+        - Ubuntu (x86_64)
+        - Ubuntu (aarch64)
+        - 麒麟 Kylin
+        - 统信 UOS
+        - 不涉及
+        - 其它（请在问题描述中说明）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: CMake 版本
+      description: 复现所用的 CMake 大版本（精确版本号可写在问题描述中）
+      options:
+        - 3.28 及以上
+        - 3.24 – 3.27
+        - 3.20 – 3.23
+        - 3.18 – 3.19
+        - 3.18 以下
+        - 不涉及
+        - 其它（请在问题描述中说明具体版本）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 生成器
+      description: CMake 构建所用的生成器
+      options:
+        - Ninja
+        - Unix Makefiles
+        - 不涉及
+        - 其它（请在问题描述中说明）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: CANN Toolkit / Driver 版本
+      description: 复现环境安装的 CANN 包版本（精确版本号可写在问题描述中）
+      options:
+        - 8.0 及以上
+        - 7.x
+        - 不涉及
+        - 其它（请在问题描述中说明具体版本）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 昇腾硬件型号
+      description: 复现所用的昇腾硬件
+      options:
+        - Atlas A2 系列（910B）
+        - Atlas 300 系列（310P）
+        - Atlas 800 系列
+        - 全部型号
+        - 不涉及（非昇腾环境）
+        - 其它（请在问题描述中说明）
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 问题描述
+      description: 现象是什么、对哪类使用场景造成影响（附上相关文件路径与行号更佳）
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 重现步骤
+      description: 从哪个 commit / 版本开始可复现，最小复现工程或操作序列
+      placeholder: |
+        基线：commit xxx
+        1. 执行 ...
+        2. 执行 ...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 预期结果
+      description: 正确行为应该是什么
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 实际结果
+      description: 实际发生了什么
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 日志/最小复现
+      description: 关键报错日志片段、最小复现工程或截图；若重现步骤已含完整信息可填「见重现步骤」
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 影响与规避方式
+      description: 影响的范围与程度；是否有临时规避手段
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 建议的回归测试
+      description: 修复后如何验证；建议补充的正反例测试点
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: AI 辅助说明
+      description: 若本 issue 由 AI 工具参与撰写，请按社区《AI 编程助手使用策略》披露 Agent 平台、模型与人工复核情况；未使用可填「无」
+      placeholder: ""
+    validations:
+      required: false

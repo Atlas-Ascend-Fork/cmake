@@ -1,0 +1,90 @@
+name: 需求建议 (Feature Request)
+description: 希望本仓新增或增强某项构建、打包、安装能力时，请使用此模板提交需求。
+title: "[Requirement|需求建议]: "
+labels: ["requirement"]
+type: "需求"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提出需求！请尽可能完整地描述场景与期望，便于需求进入评审与排期。
+        - 提交前请先搜索是否已有相同或相似需求
+        - 需求经维护者评审通过后将纳入版本规划，评审结论会回帖同步
+
+  - type: dropdown
+    attributes:
+      label: 需求类型
+      description: 需求的总体类别
+      options:
+        - 新功能
+        - 能力增强
+        - 性能优化
+        - 易用性改进
+        - 兼容性扩展
+        - 其它（请在背景说明）
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 所属组件
+      description: 需求涉及的模块（不确定请选其它）
+      options:
+        - 编译入口与环境（build.sh / superbuild / toolchain）
+        - 外部工程与 Find 模块（third_party/ modules/）
+        - 公共 CMake 函数与版本信息（function/ / scripts/version）
+        - 打包与交付（package / CPack / 多架构合包）
+        - 签名与镜像工具（sign / signtool）
+        - 安装脚本（scripts/install）
+        - 测试 / 静态检查 / CI（pytest / IWYU / pre-commit / workflow）
+        - 其它（请在背景中说明）
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 使用场景与背景
+      description: 什么业务/开发场景下需要此能力，当前为什么不能满足
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 期望的功能描述
+      description: 希望新增/增强的能力，包括期望的使用方式或接口形式
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 现有替代方案与不足
+      description: 当前如何绕过此问题，为什么不满足要求
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 期望收益
+      description: 受益的用户群体与可量化的收益（性能数据、效率提升等）
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 关联 issue/PR/资料
+      description: 相关历史 issue、PR、设计文档或第三方参考链接
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 备注
+      description: 其他需要补充的信息（期望交付时间、优先级等）
+      placeholder: ""
+    validations:
+      required: false
