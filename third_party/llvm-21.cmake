@@ -31,13 +31,15 @@ endif()
 set(LLVM21_PROJECT_VERSION "21.1.8")
 # 自定义源码包需同时设置 LLVM21_PROJECT_URL 和 LLVM21_PROJECT_SHA256。
 set(LLVM21_PROJECT_URL
-    "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/llvm/llvm-project-llvmorg-21.1.8.src.tgz"
+    "https://cann-3rd.obs.cn-north-4.myhuaweicloud.com/llvm/llvm-project-llvmorg-${LLVM21_PROJECT_VERSION}.src.tgz"
     CACHE STRING "LLVM 21 source archive URL or local path")
 set(LLVM21_PROJECT_SHA256
     "4633a23617fa31a3ea51242586ea7fb1da7140e426bd62fc164261fe036aa142"
     CACHE STRING "LLVM 21 source archive SHA256")
 set(LLVM21_SOURCE_PATH "${CANN_3RD_LIB_PATH}/llvm-21" CACHE PATH "LLVM 21 source directory")
-set(LLVM21_ARCHIVE "${CANN_3RD_LIB_PATH}/pkg/llvm-project-llvmorg-21.1.8.src.tgz")
+# 离线包按 URL 的文件名在 pkg/ 下查找：自定义 URL/SHA256 时不会误用默认包导致哈希校验失败。
+get_filename_component(_llvm21_archive_name "${LLVM21_PROJECT_URL}" NAME)
+set(LLVM21_ARCHIVE "${CANN_3RD_LIB_PATH}/pkg/${_llvm21_archive_name}")
 
 # 断言默认关闭，对齐 llvm.cmake 交付档位：开启会经 LLVM_DEFINITIONS 把 -D_DEBUG、
 # -D_GLIBCXX_ASSERTIONS 传导给消费方，调试需要时显式置 ON。
@@ -46,9 +48,10 @@ option(LLVM21_ENABLE_ASSERTIONS "Enable LLVM 21 assertions" OFF)
 # LLVM 配置阶段失败；需要时显式开启（需预装 Python 开发包、pybind11 和 nanobind）。
 option(LLVM21_ENABLE_PYTHON_BINDINGS "Enable MLIR Python bindings (requires Python development files, pybind11 and nanobind)" OFF)
 
-# 并行编译作业数默认 4, 按内存调整。
-set(LLVM21_BUILD_JOBS "4" CACHE STRING "Maximum parallel LLVM 21 build jobs")
-if(NOT LLVM21_BUILD_JOBS MATCHES "^[1-9][0-9]*$")
+# 并行编译作业数：默认留空=继承父构建并行度（见下方构建命令处的优先级说明），
+# 显式设置为正整数则固定作业数。
+set(LLVM21_BUILD_JOBS "" CACHE STRING "Maximum parallel LLVM 21 build jobs (empty = inherit from parent build)")
+if(LLVM21_BUILD_JOBS AND NOT LLVM21_BUILD_JOBS MATCHES "^[1-9][0-9]*$")
     message(FATAL_ERROR "[ThirdParty][llvm-21] LLVM21_BUILD_JOBS must be a positive integer")
 endif()
 
@@ -94,9 +97,12 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 # ========== 编译选项 ==========
 # Ninja + Release 构建静态组件库，启用 RTTI/EH, ccache launcher 由父工程透传；
 # ABI 使用 project hook 注入, llvm-config --cxxflags 也会导出该定义。
-# 安全加固与通用 flags 透传对齐 llvm.cmake/其他三方脚本约定；-fPIC 与 ABI 宏分别由
-# LLVM_ENABLE_PIC（默认 ON）和 project hook 提供，不在此重复。
-set(_llvm21_common_flags "-fstack-protector-strong -D_FORTIFY_SOURCE=2")
+# 安全加固与通用 flags 透传对齐 llvm.cmake/其他三方脚本约定。
+# -fPIC 需在初始 flags 中显式给出：LLVM_ENABLE_PIC 要到 HandleLLVMOptions 才向
+# CMAKE_<LANG>_FLAGS 追加 -fPIC，而此前 project() 的编译器检查与 config-ix 探测已按
+# CMAKE_EXE_LINKER_FLAGS 中的 -pie 链接；在默认不生成 PIE 的工具链上，非 PIC 目标文件
+# 会在这些检查中链接失败。LLVM 自身目标最终仍以其追加的 -fPIC 编译，产物不受影响。
+set(_llvm21_common_flags "-fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2")
 if(CANN_THIRD_PARTY_C_FLAGS)
     set(_llvm21_c_flags "${CANN_THIRD_PARTY_C_FLAGS} ${_llvm21_common_flags}")
 else()
@@ -110,17 +116,22 @@ endif()
 # 链接加固：RELRO/NOW/不可执行栈，可执行文件加 -pie。
 set(_llvm21_exe_linker_flags "-Wl,-z,relro,-z,now,-z,noexecstack -pie")
 set(_llvm21_shared_linker_flags "-Wl,-z,relro,-z,now,-z,noexecstack")
+# compiler launcher（ccache 等）不影响产物，单独传递且不参与缓存签名，
+# 避免是否启用 ccache 导致数小时的重复构建。
+set(_llvm21_launcher_args
+    -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
+    -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
+)
 set(_llvm21_args
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DCMAKE_INSTALL_LIBDIR:STRING=lib
     -DCMAKE_C_COMPILER:FILEPATH=${LLVM21_C_COMPILER}
     -DCMAKE_CXX_COMPILER:FILEPATH=${LLVM21_CXX_COMPILER}
-    -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
-    -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
     "-DCMAKE_C_FLAGS:STRING=${_llvm21_c_flags}"
     "-DCMAKE_CXX_FLAGS:STRING=${_llvm21_cxx_flags}"
     "-DCMAKE_EXE_LINKER_FLAGS:STRING=${_llvm21_exe_linker_flags}"
     "-DCMAKE_SHARED_LINKER_FLAGS:STRING=${_llvm21_shared_linker_flags}"
+    "-DCMAKE_MODULE_LINKER_FLAGS:STRING=${_llvm21_shared_linker_flags}"
     -DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}
     -DPython_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}
     -DBUILD_SHARED_LIBS:BOOL=OFF
@@ -134,7 +145,15 @@ set(_llvm21_args
     -DLLVM_BUILD_TOOLS:BOOL=ON
     -DLLVM_BUILD_UTILS:BOOL=ON
     -DLLVM_BUILD_EXAMPLES:BOOL=OFF
+    -DLLVM_INCLUDE_EXAMPLES:BOOL=OFF
+    -DLLVM_INCLUDE_BENCHMARKS:BOOL=OFF
+    -DLLVM_ENABLE_BINDINGS:BOOL=OFF
+    # 可选宿主依赖默认“找到即启用”，会写入导出的链接依赖且不参与缓存签名；
+    # 统一关闭以保证产物与构建机环境无关（对齐 llvm.cmake 的 LLVM_ENABLE_ZSTD=OFF）。
     -DLLVM_ENABLE_LIBEDIT:BOOL=OFF
+    -DLLVM_ENABLE_ZLIB:STRING=OFF
+    -DLLVM_ENABLE_ZSTD:STRING=OFF
+    -DLLVM_ENABLE_LIBXML2:STRING=OFF
     -DLLVM_INCLUDE_TESTS:BOOL=OFF
     -DMLIR_INCLUDE_TESTS:BOOL=OFF
     -DMLIR_INCLUDE_INTEGRATION_TESTS:BOOL=OFF
@@ -144,7 +163,8 @@ set(_llvm21_args
 # ========== 缓存签名与路径派生 ==========
 # 长期保留 llvm-21/ 源码目录和 lib_cache/llvm_21.1.8/<签名>/ 安装结果, llvm-21-build/<签名>/
 # 仅作临时工作目录, 成功后整体删除, 失败时保留现场。ABI、编译器、源码包摘要及关键选项参与
-# 签名，缓存按签名隔离；并行数不影响产物，不参与签名。共享缓存勿跨 Docker/宿主机混用。
+# 签名，缓存按签名隔离；并行数和 compiler launcher（ccache 等）不影响产物，不参与签名。
+# 共享缓存勿跨 Docker/宿主机混用。
 set(_llvm21_signature_input
     "schema=1;${LLVM21_PROJECT_VERSION};${LLVM21_PROJECT_SHA256};${LLVM21_SOURCE_PATH};${_llvm21_abi};${_llvm21_args};${_llvm21_C_version};${_llvm21_CXX_version};${Python3_VERSION};${CMAKE_HOST_SYSTEM_NAME};${CMAKE_HOST_SYSTEM_PROCESSOR}")
 string(SHA256 _llvm21_signature "${_llvm21_signature_input}")
@@ -240,9 +260,21 @@ else()
         -DCMAKE_INSTALL_PREFIX:PATH=${LLVM21_INSTALL_PATH}
         -DCMAKE_PROJECT_INCLUDE:FILEPATH=${_llvm21_abi_hook}
         ${_llvm21_args}
+        ${_llvm21_launcher_args}
     )
-    set(LLVM21_BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel ${LLVM21_BUILD_JOBS})
-    set(LLVM21_INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target install --parallel ${LLVM21_BUILD_JOBS})
+    # 并行度优先级（LLVM21_BUILD_JOBS 留空时不传 --parallel）：
+    # 1. make 父工程 -jN：MAKEFLAGS 携带作业池描述，支持 jobserver 的 ninja
+    #    （Kitware 分发版）直接加入父进程作业池，受父进程并行数约束；
+    # 2. CMAKE_BUILD_PARALLEL_LEVEL 环境变量（cmake --build 官方继承通道，
+    #    注意：显式传不带数值的 --parallel 会屏蔽该变量，因此此处必须整体省略）；
+    # 3. ninja 默认并行度（CPU 核数）。
+    # 显式设置 LLVM21_BUILD_JOBS 则以固定数值调用 --parallel N。
+    set(_llvm21_parallel_args)
+    if(LLVM21_BUILD_JOBS)
+        set(_llvm21_parallel_args "--parallel;${LLVM21_BUILD_JOBS}")
+    endif()
+    set(LLVM21_BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> ${_llvm21_parallel_args})
+    set(LLVM21_INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target install ${_llvm21_parallel_args})
 
     # ========== ExternalProject_Add ==========
     include(ExternalProject)
@@ -261,6 +293,10 @@ else()
         CONFIGURE_COMMAND ${LLVM21_CONFIGURE_COMMAND}
         BUILD_COMMAND ${LLVM21_BUILD_COMMAND}
         INSTALL_COMMAND ${LLVM21_INSTALL_COMMAND}
+        # 构建耗时较长，Ninja 父工程下实时输出日志而不是结束后一次性输出。
+        USES_TERMINAL_CONFIGURE TRUE
+        USES_TERMINAL_BUILD TRUE
+        USES_TERMINAL_INSTALL TRUE
         EXCLUDE_FROM_ALL TRUE
     )
     cmake_policy(POP)
