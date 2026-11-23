@@ -56,6 +56,9 @@ def main():
         return False
 
     content = "\n".join(gen_version_info_content(args.version, args.deps))
+    output_dir = os.path.dirname(args.output)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as file:
         file.write(content)
 
