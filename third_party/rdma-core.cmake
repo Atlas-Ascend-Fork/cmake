@@ -112,11 +112,20 @@ else()
         add_custom_target(rdma_core_src)
     endif()
 
+    # Makefiles 通过递归 make 继承父工程的并行任务额度。
+    if(CMAKE_GENERATOR MATCHES "Makefiles")
+        set(RDMA_CORE_EP_BUILD_CMD $(MAKE) kern-abi)
+    else()
+        set(RDMA_CORE_EP_BUILD_CMD
+            ${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG> --target kern-abi)
+    endif()
+
     ExternalProject_Add(rdma_core_build
         SOURCE_DIR ${RDMA_CORE_SRC_DIR}
         BINARY_DIR ${RDMA_CORE_BUILD_DIR}
         DOWNLOAD_COMMAND ""
         CONFIGURE_COMMAND ${CMAKE_COMMAND}
+            -G ${CMAKE_GENERATOR}
             -DNO_MAN_PAGES=1
             -DENABLE_RESOLVE_NEIGH=0
             -DCMAKE_SKIP_RPATH=True
@@ -124,7 +133,7 @@ else()
             -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
             -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
             <SOURCE_DIR>
-        BUILD_COMMAND $(MAKE) kern-abi
+        BUILD_COMMAND ${RDMA_CORE_EP_BUILD_CMD}
         INSTALL_COMMAND ""
         EXCLUDE_FROM_ALL TRUE
         DEPENDS rdma_core_src
