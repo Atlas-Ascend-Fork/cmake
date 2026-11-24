@@ -444,78 +444,6 @@ create_pkg_inner_softlink() {
     return 0
 }
 
-# 处理软链路径为已存在目录的情况
-# minirc场景，install_path目录下，存在include目录
-# 并且filelist.csv中配置了(x86_64|aarch64)-linux/include目录
-# 则将(x86_64|aarch64)-linux/include中的内容，软链接至include目录下
-deal_with_existed_dir() {
-    local install_path="$1"
-    local folder="$2"
-    local filelist_path="$3"
-    local install_path_regex="^(x86_64|aarch64)-linux/${folder}$"
-    local install_sub_path_regex="^(x86_64|aarch64)-linux/${folder}/[^/]+$"
-
-    if [ -L "${install_path}/${folder}" ] || [ ! -d "${install_path}/${folder}" ]; then
-        return 0
-    fi
-
-    target_path=$(awk -v folder="${folder}" -v install_path_regex="${install_path_regex}" '
-        BEGIN{
-            FS= ","
-        }
-        {
-            if ($2 != "mkdir") next
-
-            if ($4 !~ install_path_regex) next
-
-            if ($9 != folder) next
-
-            print $4
-        }' "${filelist_path}")
-
-    if [ "${target_path}" = "" ]; then
-        return 0
-    fi
-
-    awk -v folder="${folder}" -v install_path_regex="${install_path_regex}" -v install_sub_path_regex="${install_sub_path_regex}" '
-        BEGIN{
-            FS = ","; OFS = ","
-        }
-        {
-            if ($2 != "mkdir" && $2 != "copy" && $2 != "move") {
-                print $0
-                next
-            }
-            if ($4 ~ install_path_regex) {
-                print $1, $2, $3, $4, $5, $6, $7, $8, "NA", $10, $11, $12, $13, $14, $15
-                next
-            }
-            if ($4 !~ install_sub_path_regex) {
-                print $0
-                next
-            }
-            softlink = $9
-            if (softlink != "NA") {
-                print $0
-                next
-            }
-
-            z = split($4, filepath_list, "/")
-            softlink = folder "/" filepath_list[z]
-            print $1, $2, $3, $4, $5, $6, $7, $8, softlink, $10, $11, $12, $13, $14, $15
-        }' "${filelist_path}" > "${filelist_path}.tmp"
-    if [ $? -ne 0 ]; then
-        log "ERROR" "modify filelist for ${install_path}/${folder} failed!"
-        return 1
-    fi
-
-    mv -f "${filelist_path}.tmp" "${filelist_path}"
-    if [ $? -ne 0 ]; then
-        log "ERROR" "replace filelist for ${install_path}/${folder} failed!"
-        return 1
-    fi
-}
-
 #执行创建目录动作
 do_create_dirs() {
     local action="$1"
@@ -545,12 +473,6 @@ do_create_dirs() {
         foreach_filelist "filter_by_blocks" "reset_mod_dirs_recursive" "${install_type}" "${install_path}" "copy_entity" "${filelist_path}" "${feature_param}" "no" "normal"
         ret="$?" && [ $ret -ne 0 ] && return $ret
     elif [ "${action}" = "all" ] || [ "${action}" = "mkdir" ]; then
-        deal_with_existed_dir "$install_path" "include" "$filelist_path"
-        ret="$?" && [ $ret -ne 0 ] && return $ret
-
-        deal_with_existed_dir "$install_path" "lib64" "$filelist_path"
-        ret="$?" && [ $ret -ne 0 ] && return $ret
-
         # 先重置目录权限配置，防止软链接时缺少权限
         foreach_filelist "NA" "reset_mod_dirs" "$install_type" "$install_path" "mkdir" "$filelist_path" "${feature_param}" "no" "normal"
         ret="$?" && [ $ret -ne 0 ] && return $ret
