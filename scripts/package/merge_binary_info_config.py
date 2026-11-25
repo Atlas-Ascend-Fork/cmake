@@ -97,7 +97,12 @@ def parse_args(argv: List[str]):
         "--priority", choices=["first", "last"], default="last", help="merge priority"
     )
     args = parser.parse_args(argv)
-    if not args.input_files and (not args.base_file or not args.update_file):
+    if args.input_files:
+        if args.base_file or args.update_file:
+            parser.error(
+                "--input-files cannot be combined with --base-file/--update-file"
+            )
+    elif not args.base_file or not args.update_file:
         parser.error("provide --input-files or both --base-file and --update-file")
     return args
 

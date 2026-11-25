@@ -134,3 +134,11 @@ def test_main_with_input_files(tmp_path: Path):
 
     assert ok is True
     assert os.path.exists(out)
+
+
+def test_parse_args_rejects_input_files_combined_with_base_or_update():
+    try:
+        mbic.parse_args(["--input-files", "a.json", "--base-file", "b.json"])
+    except SystemExit:
+        return
+    raise AssertionError("expected SystemExit")
