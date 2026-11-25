@@ -1,3 +1,13 @@
+<!-- -----------------------------------------------------------------------------------------------------------
+ Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ CANN Open Software License Agreement Version 2.0 (the "License").
+ Please refer to the License for details. You may not use this file except in compliance with the License.
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+ See LICENSE in the root of the software repository for the full text of the License.
+----------------------------------------------------------------------------------------------------------- -->
+
 # 打包与安装说明
 
 > 本指南面向社区开发者与运维人员，手把手带你完成 CANN 组件的**打包**与**安装/卸载**。
@@ -319,7 +329,7 @@ ls <安装根路径>/cann_uninstall.sh
 ls <安装根路径>/<版本目录>/share/info/<package>/script/uninstall.sh
 
 # 5. 验证权限是否符合预期（见第五节）
-stat -c "%a %U:%G %n" <安装根路径>/cann_uninstall.sh   # 应为 750 或 744
+stat -c "%a %U:%G %n" <安装根路径>/cann_uninstall.sh   # 应为 740 或 744
 ```
 
 ---
@@ -328,7 +338,7 @@ stat -c "%a %U:%G %n" <安装根路径>/cann_uninstall.sh   # 应为 750 或 744
 
 ### 4.1 卸载 .run 安装的内容
 
-每个子包安装时会在 `share/info/<package>/script/` 下生成 `uninstall.sh`，并注册到安装根目录的总卸载脚本 `cann_uninstall.sh`（权限 750/744，仅安装者可执行）。
+每个子包安装时会在 `share/info/<package>/script/` 下生成 `uninstall.sh`，并注册到安装根目录的总卸载脚本 `cann_uninstall.sh`（权限 740/744，仅安装者可执行）。
 
 ```bash
 # 方式一：运行总卸载脚本（卸载所有已注册子包，推荐）
@@ -389,7 +399,7 @@ sudo apt remove cann-runtime
 | 所有目录 | 755 | 750 | 目录需 `x` 位以保障遍历可达 |
 | 可执行程序（ELF 二进制） | 755 | 750 | — |
 | Python/Shell 脚本（.py/.sh） | 755 | 750 | 统一可执行 |
-| 安装/卸载脚本 install.sh / uninstall.sh | 744 | 740 | 仅安装者可执行，防非授权卸载 |
+| 安装/卸载脚本 install.sh / uninstall.sh / cann_uninstall.sh | 744 | 740 | 仅安装者可执行，防非授权卸载 |
 | 其他文件（.so / .a / 头文件 / 配置 / 文档） | 644 | 640 | 无 `x` 位（库通过读取加载） |
 | 符号链接 | 777 | 777 | 内核默认 |
 | `opp/built-in` 目录 | 555 | 550 | 只读遍历 |

@@ -15,8 +15,9 @@
 # minirc场景下存在使用dash调用该脚本的情况
 #export PS4='+ ${FUNCNAME[0]:+${FUNCNAME[0]}():} ${BASH_SOURCE}:${LINENO}: '
 #set -x
-# 总uninstall.sh文件权限
-TOTAL_UNINSTALL_MOD="750"
+# 总uninstall.sh文件权限：默认740仅属主可执行，--install_for_all经get_install_for_all_mod对齐为744
+# 与 docs/install/permissions.md 安装/卸载脚本规则保持一致
+TOTAL_UNINSTALL_MOD="740"
 # db.info文件权限
 DB_INFO_MOD="640"
 # 包架构
