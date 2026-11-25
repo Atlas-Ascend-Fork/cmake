@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
@@ -21,12 +21,6 @@ import os
 import hashlib
 import binascii
 import sys
-
-
-def to_bytes(n, length, endianness="big"):
-    h = "%x" % n
-    s = ("0" * (len(h) % 2) + h).zfill(length * 2).decode("hex")
-    return s if endianness == "big" else s[::-1]
 
 
 def get_filelen(f):
@@ -148,7 +142,6 @@ if __name__ == "__main__":
         f.seek(0)
         with open(tmp_file, "wb") as o_f:
             o_f.seek(fs_offset)
-            code = b""
             for byte_block in iter(lambda: f.read(4096), b""):
                 o_f.write(byte_block)
                 hash_ex.update(byte_block)

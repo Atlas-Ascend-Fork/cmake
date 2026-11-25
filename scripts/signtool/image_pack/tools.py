@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
@@ -28,12 +28,6 @@ def cal_image_hash(f):
         sha256_hash.update(byte_block)
     f.seek(0)
     return sha256_hash.digest()
-
-
-def to_bytes(n, length, endianness="big"):
-    h = "%x" % n
-    s = ("0" * (len(h) % 2) + h).zfill(length * 2).decode("hex")
-    return s if endianness == "big" else s[::-1]
 
 
 def get_filelen(f):

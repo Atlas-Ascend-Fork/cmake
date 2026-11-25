@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.

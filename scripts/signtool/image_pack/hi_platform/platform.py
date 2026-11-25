@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
@@ -15,8 +15,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2010-2025. All rights reserved.
 # ----------------------------------------------------------------------------
 import struct
-import sys
-from tools import cal_bin_hash, to_bytes
+from tools import cal_bin_hash
 import binascii
 import os
 
@@ -43,7 +42,7 @@ def __construct_header(
     # if rootfs/app.img is large_packet(>4G), stub code_len 0 (invalid value)
     code_len = 0 if before_header and large_packet else code_len
     header_base = 0x1000 if head_type else 0
-    zero_bytes_32 = int(0).to_bytes(32, "big") if sys.version > "3" else to_bytes(0, 32)
+    zero_bytes_32 = int(0).to_bytes(32, "big")
     s = struct.Struct(
         "I20sII32s32sIIIII512s512sIIIIII32sI16s16s16s88sIIII20sI32s16s8s16s16s16sI52s"
     )
@@ -219,10 +218,7 @@ def __write_crl(out, crl):
 
 
 def __write_single_header(args, out, hash_buf, code_len, head_type=0):
-    if sys.version > "3":
-        N_buf, E_buf = int(0).to_bytes(512, "big"), int(0).to_bytes(512, "big")
-    else:
-        N_buf, E_buf = to_bytes(0, 512), to_bytes(0, 512)
+    N_buf, E_buf = int(0).to_bytes(512, "big"), int(0).to_bytes(512, "big")
 
     before_header = True if (args.position == "before_header") else False
     large_packet = True if (args.pkt_type == "large_pkt") else False
