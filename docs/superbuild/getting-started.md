@@ -107,6 +107,14 @@ bash build.sh --pkgs=npu-runtime --build_host_only
 | `--device-toolchain=<PATH>` | 指定 device 侧 `CMAKE_TOOLCHAIN_FILE` | 内置 `aarch64-hcc-toolchain.cmake` |
 | `--device-toolchain-dir=<PATH>` | 指定 device 侧 `TOOLCHAIN_DIR`（toolchain file 内部引用的编译器根目录） | `${ASCEND_INSTALL_PATH}/toolkit/toolchain/hcc` |
 
+`version.info` 的 `repository_url` / `commit_id` 由构建期生产者脚本自动采集：默认
+从组件仓 git 取 `origin` 与 HEAD，并完成 URL 归一化（转 https、剥离凭据、去 `.git`）
+与 `commit_id` 小写。特殊场景（信息来源异于普通 git 仓）可经
+`--cmake-extra-args CANN_REPO_INFO_GEN_SCRIPT=/abs/path/producer.py` 挂入用户自定义
+生产者脚本（请使用**绝对路径**：相对路径以 `CMAKE_SOURCE_DIR` 为基准，容易与
+build.sh 执行目录混淆）；组件仓单仓 `build.sh` 无透传参数时，可
+`export CANN_REPO_INFO_GEN_SCRIPT=/abs/path/producer.py`（优先级：`-D` > 环境变量）。
+
 ## 构建产物
 
 - 构建目录：`build/`

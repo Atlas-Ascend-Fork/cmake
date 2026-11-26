@@ -55,6 +55,7 @@ pre-commit run --all-files  # manual full-repo check
 - **ABI:** `CANN_CXX11_ABI` is computed once in `init_cann_project()` (`function/prepare.cmake`) and consumed by `intf_pub` + all third-party scripts. Host defaults to `_GLIBCXX_USE_CXX11_ABI=0` (old ABI); device defaults to `1`. `USE_CXX11_ABI` overrides either. See `intf_pub/intf_pub_linux.cmake:57`.
 - **ccache** is on by default (`ENABLE_CCACHE`).
 - **Dependency pairs are stride-2 lists:** `set_cann_build_dependencies`/`set_cann_run_dependencies` append `pkg;version` pairs to `CANN_VERSION_*_BUILD_DEPS`/`_RUN_DEPS`. Consumers (`get_build_pkg_deps` in `function/function.cmake`, `scripts/version/generate_version_info.py`) walk the list 2 at a time, so changing the call format requires updating both (flagged in code comments).
+- **`version.info` 仓库字段（生产者→JSON→消费者两级流水线）：** 构建期生产者脚本采集仓库信息写入 `repo_info.<pkg>.json`（schema 为分组 JSON，支持多包条目），`scripts/version/generate_version_info.py` 只做 schema 校验并直接消费，生成 `repository_url`/`commit_id`（位于 `timestamp` 前，同进同出）。生产者：自定义脚本 `CANN_REPO_INFO_GEN_SCRIPT`（特殊场景由使用方自行实现，本仓不提供、不维护；支持同名环境变量兜底，`-D`/cache > env > 框架内置，env 值不回写 cache）> 框架默认 `scripts/version/gen_repo_info.py`（git 仓 origin+HEAD）。值处理在生产者完成：URL 归一化（`git@`/`ssh://git@` 转 https、丢 ssh 端口、剥 userinfo 凭据、去 `.git`）与 `commit_id` 统一小写（仅 `git@`/`ssh://git@` 保证转 https，其余形态原样保留）；生产者契约：探测失败写 `{}` 告警后退出 0、构建继续，数据残缺等硬错误非零退出、构建失败；缺本包条目时消费者告警（含包名与文件路径）并省略两字段。`add_cann_version_info_targets(EXTRA_FIELDS <key=value>...)` 可追加组件专有字段（如 `host_only`），位于 `timestamp` 之后，框架不解释其语义；保留键（`Version`/`version_dir`/`timestamp`/`repository_url`/`commit_id`/`required_package_*`）禁止注入，关键词拼错或缺少值会 configure 失败。联编下组件仓目录按 `CANN_PACKAGE_DIR_<pkg>` 解析；schema 非法、未知键、重复键、值内换行时构建失败。
 - `set_cann_cpack_config` 将当前组件的运行依赖保存在全局属性 `CANN_CPACK_RUN_DEPS_<component>` 中；后续兄弟目录重新生成 CPack 配置时按组件读取。运行依赖须在对应组件的打包配置调用之前声明，同一组件再次调用时更新其依赖记录。
 - **Never set `EXCLUDE_FROM_ALL` on `add_subdirectory`** — CMake then skips that dir's `install()` rules, silently dropping components from packages. `set_cann_all_targets` (`function/function.cmake:182`) instead marks individual *targets* `EXCLUDE_FROM_ALL` and aggregates wanted ones under `cann_all_targets`; the `add_subdirectory` calls in `superbuild/CMakeLists.txt:67` deliberately omit it for the same reason.
 
@@ -74,7 +75,7 @@ Functions in `function/prepare.cmake` are the framework's public API: `init_cann
 | `toolchain/` | `aarch64-hcc-toolchain.cmake` for device cross-compile |
 | `docs/` | Detailed architecture/integration docs (`architecture.md`, `framework/`, `superbuild/`, `install/`) |
 | `scripts/package/` | Python packaging logic + pytest suite; invoked by CMake at `package` time |
-| `scripts/version/` | `check_build_dependencies.py`, `generate_version_info.py` — invoked by CMake functions; pytest suite in `tests/` |
+| `scripts/version/` | `check_build_dependencies.py`, `gen_repo_info.py` (repo info producer), `generate_version_info.py` — invoked by CMake functions; pytest suite in `tests/` |
 | `scripts/sign/` | Code signing scripts invoked by `add_cann_sign_file`; pytest suite in `tests/` |
 | `scripts/signtool/` | Python image pack/extract/ESBC-header tools used by the sign flow |
 | `scripts/build_analysis/` | IWYU log parser (`iwyu_log_parser.py`) + pytest suite in `tests/` |
