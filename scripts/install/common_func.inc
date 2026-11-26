@@ -1217,13 +1217,10 @@ exec_with_param() {
     local param="$1"
     shift 1
     local exec_mode fifo_path="$PARALLEL_FIFO" tmp
-    # 记录后台任务PID，由调用方逐个等待并汇总退出状态
-    exec_with_param_pid=""
     extract_1st "exec_mode" "$param"
     if [ "$exec_mode" = "concurrency" ]; then
         if [ "$fifo_path" = "none" ] || [ "$fifo_path" = "" ]; then
             "$@" &
-            exec_with_param_pid="$!"
         else
             read tmp <&8
             {
@@ -1232,7 +1229,6 @@ exec_with_param() {
                 echo >&8
                 exit $ret
             } &
-            exec_with_param_pid="$!"
         fi
     else
         "$@"
