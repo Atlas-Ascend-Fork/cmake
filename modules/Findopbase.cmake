@@ -63,8 +63,8 @@ endif()
 
 if(OPBASE_FOUND)
   if(NOT OPBASE_FIND_QUIETLY)
-    message(STATUS "Found OPABSE include:${OPBASE_INC_DIR}")
-    message(STATUS "Found OPABSE lib:${OPBASE_LIB_DIR}")
+    message(STATUS "Found OPBASE include:${OPBASE_INC_DIR}")
+    message(STATUS "Found OPBASE lib:${OPBASE_LIB_DIR}")
   endif()
   set(OPBASE_INC_DIRS
     ${OPBASE_INC_DIR}
