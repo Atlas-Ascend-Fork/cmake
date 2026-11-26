@@ -1335,7 +1335,7 @@ foreach_filelist_exec() {
     local exec_mode="$3"
     local exec_func="$4"
     local install_path="$5"
-    local ret=0 tmp_ret exec_params exec_with_param_pid="" exec_pids="" exec_pid
+    local ret=0 tmp_ret exec_params
     shift 5
 
     pack_exec_params "exec_params" "${exec_mode}"
@@ -1371,22 +1371,14 @@ EOF
         if [ ${len_array} -eq 0 ]; then
             continue
         fi
-        # exec_with_param通过函数动态作用域回写本次启动的后台任务PID
-        exec_with_param_pid=""
         "${exec_func}" "${install_path}" "${line}" "${exec_params}" "$@"
         tmp_ret="$?" && [ ${tmp_ret} -ne 0 ] && ret="${tmp_ret}"
-        if [ "${exec_mode}" = "concurrency" ] && [ "${exec_with_param_pid}" != "" ]; then
-            exec_pids="${exec_pids} ${exec_with_param_pid}"
-        fi
     done << EOF
 ${filelist}
 EOF
 
     if [ "${exec_mode}" = "concurrency" ]; then
-        for exec_pid in ${exec_pids}; do
-            wait "${exec_pid}"
-            tmp_ret="$?" && [ ${tmp_ret} -ne 0 ] && ret="${tmp_ret}"
-        done
+        wait
     fi
 
     return $ret
