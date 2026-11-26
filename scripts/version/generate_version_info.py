@@ -173,7 +173,7 @@ def main():
     """主流程。"""
     parser = argparse.ArgumentParser()
     parser.add_argument("version", help="Version number.")
-    parser.add_argument("deps", nargs="*", help="Dependency informations.")
+    parser.add_argument("deps", nargs="*", help="Dependency information.")
     parser.add_argument("--output", required=True, help="Output file path.")
     parser.add_argument(
         "--package-name",
