@@ -1081,7 +1081,9 @@ set_install_permissions() {
 
     # script 目录下安装/卸载脚本
     if [ -n "${package_real}" ] && [ -d "${install_path_full}/share/info/${package_real}/script" ]; then
-        find "${install_path_full}/share/info/${package_real}/script" -type f -exec chmod "${script_mod}" {} + 2>/dev/null
+        find "${install_path_full}/share/info/${package_real}/script" -type f -exec chmod "${file_mod}" {} + 2>/dev/null
+        find "${install_path_full}/share/info/${package_real}/script" -type f -name "*.sh" -exec chmod "${script_mod}" {} + 2>/dev/null
+        find "${install_path_full}/share/info/${package_real}/script" -type f -name "*.py" -exec chmod "${exec_mod}" {} + 2>/dev/null
         chmod "${file_mod}" "${install_path_full}/share/info/${package_real}/ascend_install.info" 2>/dev/null
     fi
 
