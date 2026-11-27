@@ -812,14 +812,81 @@ function(check_cann_build_tool tool_name)
     set_property(GLOBAL PROPERTY CANN_TOOL_CHECKED_${tool_name} TRUE)
 endfunction()
 
-# 添加生成version.info的目标
+# 解析包对应的组件仓源码目录
+# 单仓编译时 CANN_TOP_DIR 未定义，直接使用调用点目录；
+# 联编时包名与源码目录名可能不一致，优先使用 config.cmake 中的 CANN_PACKAGE_DIR_<pkg> 映射。
+function(__cann_resolve_repo_dir out pkg_name cur_src)
+    set(repo_dir "${cur_src}")
+    if(CANN_TOP_DIR AND CANN_PACKAGE_DIR_${pkg_name})
+        get_filename_component(mapped_dir "${CANN_TOP_DIR}/${CANN_PACKAGE_DIR_${pkg_name}}" ABSOLUTE)
+        if(EXISTS "${mapped_dir}")
+            set(repo_dir "${mapped_dir}")
+        endif()
+    endif()
+    set(${out} "${repo_dir}" PARENT_SCOPE)
+endfunction()
+
+# 添加生成version.info的目标（两级流水线：生产者采集仓库信息 → 消费者生成文件）
 # 目标名格式为：version_${包名}_info
+# EXTRA_FIELDS: 可选，附加的 key=value 字段（可多个），追加在 timestamp 之后
 function(add_cann_version_info_targets)
+    cmake_parse_arguments(CANN_VERSION_INFO "" "" "EXTRA_FIELDS" ${ARGN})
+    if(CANN_VERSION_INFO_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR
+            "Unknown arguments to add_cann_version_info_targets: ${CANN_VERSION_INFO_UNPARSED_ARGUMENTS}. "
+            "Only EXTRA_FIELDS is supported.")
+    endif()
+    if(CANN_VERSION_INFO_KEYWORDS_MISSING_VALUES)
+        message(FATAL_ERROR
+            "Missing value for EXTRA_FIELDS in add_cann_version_info_targets.")
+    endif()
+
+    # 仓库信息生产者脚本：自定义脚本（CANN_REPO_INFO_GEN_SCRIPT），空时用框架内置 gen_repo_info.py
+    set(CANN_REPO_INFO_GEN_SCRIPT "" CACHE STRING
+        "Custom repo info producer script for version.info (default: built-in gen_repo_info.py)")
+    # 环境变量兜底：-D/cache > ENV{CANN_REPO_INFO_GEN_SCRIPT} > 未设置（用框架内置生产者）；
+    # env 派生值不回写 cache，每次 configure 现读现用（避免上次 export 的取值粘滞）
+    set(_cann_repo_info_gen_script "${CANN_REPO_INFO_GEN_SCRIPT}")
+    if(NOT _cann_repo_info_gen_script AND DEFINED ENV{CANN_REPO_INFO_GEN_SCRIPT})
+        set(_cann_repo_info_gen_script "$ENV{CANN_REPO_INFO_GEN_SCRIPT}")
+    endif()
+    if(_cann_repo_info_gen_script AND NOT IS_ABSOLUTE "${_cann_repo_info_gen_script}")
+        get_filename_component(_cann_repo_info_gen_script "${_cann_repo_info_gen_script}"
+            ABSOLUTE BASE_DIR "${CMAKE_SOURCE_DIR}")
+    endif()
+    if(_cann_repo_info_gen_script AND NOT EXISTS "${_cann_repo_info_gen_script}")
+        message(FATAL_ERROR "CANN_REPO_INFO_GEN_SCRIPT not found: ${_cann_repo_info_gen_script}")
+    endif()
+    if(_cann_repo_info_gen_script AND IS_DIRECTORY "${_cann_repo_info_gen_script}")
+        message(FATAL_ERROR "CANN_REPO_INFO_GEN_SCRIPT is a directory: ${_cann_repo_info_gen_script}")
+    endif()
+
     foreach(pkg_name ${CANN_VERSION_PACKAGES})
+        __cann_resolve_repo_dir(repo_dir "${pkg_name}" "${CMAKE_CURRENT_SOURCE_DIR}")
+
+        # 生产者采集仓库信息（写中间产物 repo_info.<pkg>.json）→ 消费者生成 version.info；
+        # 每包单规则双命令，生产者失败即整体失败；每包独立 JSON 路径避免并行构建写竞争
+        set(repo_info_producer "${_cann_repo_info_gen_script}")
+        if(NOT repo_info_producer)
+            set(repo_info_producer "${CANN_CMAKE_DIR}/scripts/version/gen_repo_info.py")
+        endif()
+        set(repo_info_input ${CMAKE_BINARY_DIR}/repo_info.${pkg_name}.json)
+
+        set(extra_field_args)
+        foreach(extra_field IN LISTS CANN_VERSION_INFO_EXTRA_FIELDS)
+            list(APPEND extra_field_args --extra-field "${extra_field}")
+        endforeach()
+
         add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/version.${pkg_name}.info
+            COMMAND ${repo_info_producer} --package-name "${pkg_name}"
+                    --repo-dir "${repo_dir}" --output "${repo_info_input}"
             COMMAND python3 ${CANN_CMAKE_DIR}/scripts/version/generate_version_info.py --output ${CMAKE_BINARY_DIR}/version.${pkg_name}.info
+                    --package-name "${pkg_name}" --repo-info-file "${repo_info_input}" ${extra_field_args}
                     "${CANN_VERSION_${pkg_name}_VERSION}" ${CANN_VERSION_${pkg_name}_RUN_DEPS}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version.cmake ${CANN_CMAKE_DIR}/scripts/version/generate_version_info.py
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version.cmake
+                    ${CANN_CMAKE_DIR}/scripts/version/generate_version_info.py
+                    ${repo_info_producer}
+            BYPRODUCTS "${repo_info_input}"
             VERBATIM
         )
         add_custom_target(version_${pkg_name}_info ALL DEPENDS ${CMAKE_BINARY_DIR}/version.${pkg_name}.info)

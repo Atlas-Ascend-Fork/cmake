@@ -176,9 +176,63 @@ clone_cann_target(ORIGIN ccl_kernel OUTPUT aicpu_custom IGNORE_PROP LINK_LIBRARI
 
 增量构建会跟踪版本头生成脚本的修改，脚本更新后重新生成头文件。
 
-### `add_cann_version_info_targets()`
+### `add_cann_version_info_targets([EXTRA_FIELDS <key=value>...])`
 
-为每个已声明的包生成 `version.<pkg>.info` 文件的自定义目标。
+为每个已声明的包生成 `version.<pkg>.info` 文件的自定义目标。文件内容依次为
+`Version`、`version_dir`、运行依赖版本、`repository_url`、`commit_id`、`timestamp`；
+`repository_url` 与 `commit_id` 同进同出，位于 `timestamp` 之前。
+
+仓库信息采用"生产者 → JSON → 消费者"两级流水线：构建期运行生产者脚本生成
+`${CMAKE_BINARY_DIR}/repo_info.<pkg>.json`，消费者只做 schema 校验并直接消费。
+
+- `CANN_REPO_INFO_GEN_SCRIPT` 指定的自定义生产者（支持用户自定义，适用于特殊场景）；
+- 未指定时使用框架内置 `scripts/version/gen_repo_info.py`：从组件仓 git 取
+  `origin` 地址与 HEAD。
+
+生产者契约：接收 `--package-name <pkg> --repo-dir <dir> --output <file>`；
+**写最终值**——URL 归一化（`git@`/`ssh://git@` 含端口转 `https://`、剥离 http(s)
+userinfo 凭据、去末尾 `.git`）与 `commit_id` 统一小写由生产者完成；仅 `git@` /
+`ssh://git@` 形态保证转换为 https，其余形态（含 `user@host:path`）仅去末尾
+`.git`、原样保留；产物为分组
+JSON（schema 支持多包，消费者按包名查找本包条目）：
+
+```json
+{
+    "npu-runtime": {
+        "repository_url": "https://gitcode.com/cann/runtime",
+        "commit_id": "347883e8b4f97b58321465b0102f671e8f97995a"
+    }
+}
+```
+
+探测失败（非 git 仓库、无 origin、git 不可用等）是合法空态——写 `{}` 并告警，
+构建继续；origin 为本地路径或 `file://` 形态时同样按空态处理（避免构建机路径进入
+发布制品）；"数据存在但残缺"（如确认信息存在但内容不完整）属硬错误——
+非零退出，构建失败。特殊场景的生产者**由使用方自行实现**并经
+`CANN_REPO_INFO_GEN_SCRIPT` 挂入，本仓不提供、不维护特定场景的解析脚本，
+相应解析逻辑的维护责任归使用方。
+
+消费者校验：条目仅允许 `repository_url` / `commit_id` 两键且必须同时存在；
+`commit_id` 为 40 位十六进制；包名键非法、未知键、重复键、空值、值内换行均拒绝，
+schema 非法时构建失败；**文件为多包时须整体合法**（任一条目非法即构建失败，
+脏条目 fail-fast）；**缺本包条目时告警（含包名与文件路径）并省略两字段**。
+
+`CANN_REPO_INFO_GEN_SCRIPT` 传入方式：`cmake -D...`，或经本仓 `build.sh
+--cmake-extra-args` 传导；另支持同名环境变量兜底（优先级 `-D`/cache >
+`ENV{CANN_REPO_INFO_GEN_SCRIPT}` > 未设置用框架内置生产者），适用于组件仓单仓
+build.sh 无透传参数的场景，env 派生值不回写 cache（每次 configure 现读现用）。
+相对路径以 `CMAKE_SOURCE_DIR` 为基准归一，请使用**绝对路径**。
+
+多仓联编时按 `CANN_PACKAGE_DIR_<pkg>` 映射解析组件仓目录，单仓时使用调用点源码目录。
+
+可选参数 `EXTRA_FIELDS`（可多个 `key=value`）：按给定顺序追加到 `timestamp` 之后，
+用于组件专有字段，框架不解释其业务含义。保留键（`Version`、`version_dir`、`timestamp`、
+`repository_url`、`commit_id` 及 `required_package_` 前缀）不可注入；关键词拼错或缺少值会
+在 configure 阶段报错。示例：
+
+```cmake
+add_cann_version_info_targets(EXTRA_FIELDS "host_only=true")
+```
 
 ## 签名
 
