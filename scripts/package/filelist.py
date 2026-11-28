@@ -528,8 +528,8 @@ def generate_filelist(filelist: FileList, filepath: str):
     """生成文件列表文件。"""
     build_dir = os.path.dirname(filepath)
 
-    if not os.path.exists(build_dir):
-        os.makedirs(build_dir)
+    if build_dir:
+        os.makedirs(build_dir, exist_ok=True)
 
     content_list = list(
         itertools.chain(
@@ -623,8 +623,8 @@ def create_record_file_item(share_info_name: str) -> FileItem:
 def generate_record_file(records: List[str], filepath: str):
     """生成RECORD文件。"""
     record_dir = os.path.dirname(filepath)
-    if not os.path.exists(record_dir):
-        os.makedirs(record_dir)
+    if record_dir:
+        os.makedirs(record_dir, exist_ok=True)
 
     if os.path.exists(filepath):
         os.chmod(filepath, 0o640)
