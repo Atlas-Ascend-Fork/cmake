@@ -264,12 +264,14 @@ def create_softlink(source: str, target: str, optional: bool) -> bool:
             "Warning: %s is already a directory, skipping soft link creation.", target
         )
         return True
-    if not os.path.exists(link_target_path):
-        os.makedirs(link_target_path)
+    if link_target_path:
+        os.makedirs(link_target_path, exist_ok=True)
     tmp_dir = os.getcwd()
     os.chdir(link_target_path)
-    os.symlink(relative_path, link_target_name)
-    os.chdir(tmp_dir)
+    try:
+        os.symlink(relative_path, link_target_name)
+    finally:
+        os.chdir(tmp_dir)
     return True
 
 
@@ -361,8 +363,8 @@ def generate_customized_file(target_conf, ext_name, build_dir):
     else:
         content_list = generate_info_content(target_conf, ext_name)
 
-    if not os.path.exists(dirpath):
-        os.makedirs(dirpath)
+    if dirpath:
+        os.makedirs(dirpath, exist_ok=True)
 
     if os.path.exists(filepath):
         os.chmod(filepath, 0o700)
