@@ -34,8 +34,8 @@ def load_json_file(file_path: str) -> dict:
 def save_json_file(file_path: str, data: dict) -> None:
     # 确保输出目录存在
     output_dir = os.path.dirname(file_path)
-    if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
 
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
